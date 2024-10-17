@@ -1,0 +1,26 @@
+# Mute volume
+"pamixer -t"
+    XF86AudioMute
+
+# Increase volume
+"pamixer -i 5"
+    XF86AudioRaiseVolume
+
+# Decrease volume
+"pamixer -d 5"
+    XF86AudioLowerVolume
+
+#"amixer -q -D pulse set Capture toggle"
+#    XF86AudioMicMute
+
+"playerctl play-pause"
+    XF86AudioPlay
+
+"playerctl stop"
+    XF86AudioStop
+
+"playerctl next"
+    XF86AudioNext
+
+"playerctl previous"
+    XF86AudioPrev
