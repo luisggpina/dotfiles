@@ -785,6 +785,30 @@ Configured via F2: tree view, hide kernel/userland threads, highlight
 basename, CPU frequency + temperature, 2 s delay; meters: CPUs, Memory, Swap
 | Tasks, Load, Uptime, Battery, Disk IO, Network IO.
 
+### Night light — gammastep + geoclue
+```sh
+sudo pacman -S gammastep geoclue
+```
+`~/.config/gammastep/config.ini` (stowed): 6500 K day / 3700 K night,
+`location-provider=geoclue2`, `adjustment-method=randr`, `fade=1`. The
+transition follows solar elevation (+3° → −6°, ~45–60 min around sunset).
+
+geoclue gotchas (all hit on this machine):
+- After installing geoclue, **reload D-Bus or reboot** — its D-Bus policy is
+  loaded before the `geoclue` user exists, and requests silently time out.
+- No Wi-Fi geolocation URL is set by default (Mozilla's service is gone).
+  `/etc/geoclue/conf.d/99-beacondb.conf`:
+  `[wifi]` / `url=https://api.beacondb.net/v1/geolocate`. beaconDB has no
+  Wi-Fi coverage here yet, so it falls back to GeoIP (~25 km) — fine for
+  sunsets.
+- A geoclue **agent must be running** to authorize clients; i3 starts
+  `/usr/lib/geoclue-2.0/demos/agent` before gammastep.
+- Test: `/usr/lib/geoclue-2.0/demos/where-am-i -t 30`, then `gammastep -v -p`.
+
+Bar: an i3status-rust `toggle` block (moon/sun icon) starts/stops gammastep.
+`command_on` must redirect output (`setsid -f gammastep >/dev/null 2>&1`),
+or the block waits on the inherited pipe and freezes until i3 restarts.
+
 ---
 
 ## 13. System files checklist

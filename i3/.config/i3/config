@@ -148,6 +148,8 @@ exec --no-startup-id insync start
 exec --no-startup-id keepassxc
 exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 exec --no-startup-id flameshot
+exec --no-startup-id /usr/lib/geoclue-2.0/demos/agent
+exec --no-startup-id gammastep
 
 
 # exec_always --no-startup-id ~/bin/desk-watch.sh

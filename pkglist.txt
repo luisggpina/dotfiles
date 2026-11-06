@@ -10,6 +10,8 @@ dunst
 flameshot
 fprintd
 fzf
+gammastep
+geoclue
 git
 gvim
 htop

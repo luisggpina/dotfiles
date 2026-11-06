@@ -68,6 +68,17 @@ update = true
 block = "backlight"
 
 [[block]]
+block = "toggle"
+format = " $icon "
+state_on = "info"
+icon_on = "weather_moon"
+icon_off = "weather_sun"
+command_state = "pgrep -x gammastep >/dev/null && echo on"
+command_on = "setsid -f gammastep >/dev/null 2>&1; sleep 0.3"
+command_off = "pkill -x gammastep"
+interval = 5
+
+[[block]]
 block = "sound"
 [[block.click]]
 button = "left"
