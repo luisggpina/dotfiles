@@ -77,3 +77,8 @@ augroup END
 let g:tex_flavor = 'latex'
 " vim-latex needs grep to always print file names
 set grepprg=grep\ -nH\ $*
+
+" Per-host additions, if any
+if filereadable(expand('~/.vimrc.local'))
+    source ~/.vimrc.local
+endif

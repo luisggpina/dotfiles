@@ -22,3 +22,5 @@
     keepBackup = false
 [alias]
     follow = log --follow
+[include]
+    path = ~/.gitconfig.local

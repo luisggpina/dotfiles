@@ -1,11 +1,13 @@
-# dotfiles — `ultra` (ThinkPad X1 Carbon Gen 3, Arch Linux, i3)
+# dotfiles — Arch Linux + i3
 
-Configs and setup notes for my Arch install on a 2015 ThinkPad X1 Carbon
-(3rd gen). This README is the full record of how the machine was built,
-including the one-off hardware workarounds, so it can be rebuilt (or a
-similar machine set up) without rediscovering everything.
+Configs and setup notes for my Arch/i3 machines. This README is the shared
+record of how they are built; each machine's hardware, disk layout and
+one-off workarounds live in `hosts/<hostname>.md`.
 
-- **Hostname:** `ultra`
+| Host | Machine | Notes |
+|---|---|---|
+| `ultra` | ThinkPad X1 Carbon Gen 3 (2015) | [hosts/ultra.md](hosts/ultra.md) |
+
 - **Desktop:** i3 (X11) · i3status-rust bar · rofi · Alacritty · tmux · zsh
 - **Login:** LightDM · **Lock:** i3lock-color via xss-lock
 - **Power:** TLP, charge thresholds 75–80 %, suspend-then-hibernate
@@ -15,7 +17,7 @@ similar machine set up) without rediscovering everything.
 ## Contents
 
 1. [Repo layout & usage](#1-repo-layout--usage)
-2. [Hardware notes](#2-hardware-notes)
+2. [Hosts](#2-hosts)
 3. [Base install](#3-base-install)
 4. [First boot](#4-first-boot)
 5. [Shell: zsh, tmux, SSH](#5-shell-zsh-tmux-ssh)
@@ -43,39 +45,55 @@ me once, putting every link in `~/repos/`).
 ```
 ~/repos/dotfiles/
 ├── .stowrc            ← --target=~
-├── zsh/.zshrc  zsh/.zprofile
-├── tmux/.tmux.conf
-├── vim/.vimrc
-├── git/.gitconfig
-├── x/.Xresources
-├── i3/.config/i3/config
+├── install.sh         ← stow shared packages + host-$(uname -n)
+├── zsh/.zshrc  zsh/.zprofile          ┐
+├── tmux/.tmux.conf                    │
+├── vim/.vimrc                         │
+├── git/.gitconfig                     │
+├── x/.Xresources                      │ shared by every host
+├── i3/.config/i3/config               │
 ├── i3status/.config/i3status-rust/config.toml
-├── rofi/.config/rofi/config.rasi
+├── rofi/.config/rofi/config.rasi      │
 ├── alacritty/.config/alacritty/alacritty.toml
-├── dunst/.config/dunst/dunstrc
-├── bin/bin/{lock,batmode}
+├── dunst/.config/dunst/dunstrc        │
+├── gammastep/.config/gammastep/config.ini
+├── bin/bin/lock                       ┘
+├── host-ultra/        ← only what differs on ultra (see §2)
+│   ├── .Xresources.host
+│   ├── .config/i3/host.conf
+│   └── bin/batmode
 ├── system/            ← copies of /etc and /boot files — NOT stowed
-├── pkglist.txt        ← pacman -Qqen
-└── aurlist.txt        ← pacman -Qqem
+│   ├── common/        ← every host
+│   └── ultra/         ← this host only (boot entry, fstab, …)
+├── pkgs/
+│   ├── common.txt  common-aur.txt     ← every host (curated)
+│   ├── ultra.txt   ultra-aur.txt      ← extras on ultra (generated)
+│   └── update.sh
+└── hosts/ultra.md     ← hardware notes and install record
 ```
 
 Branches: **`master`** is this setup; **`legacy`** holds the previous
 (2024) flat configs — Xmodmap, xbindkeys, bumblebee-status i3 config, etc.
 
-New machine:
+New machine (its `host-<hostname>` package must exist first — §2):
 
 ```sh
 sudo pacman -S --needed git stow
 git clone git@github.com:luisggpina/dotfiles.git ~/repos/dotfiles
 cd ~/repos/dotfiles
-sudo pacman -S --needed - < pkglist.txt
-yay -S --needed - < aurlist.txt
-for p in */; do [ "$p" = system/ ] || stow -v "${p%/}"; done
+sudo pacman -S --needed - < pkgs/common.txt
+sudo pacman -S --needed - < pkgs/$(uname -n).txt
+yay -S --needed - < pkgs/common-aur.txt
+yay -S --needed - < pkgs/$(uname -n)-aur.txt
+./install.sh -n        # dry run
+./install.sh
 ```
 
+`install.sh -D` unlinks everything — do that **before** pulling a commit
+that moves files between packages, then `./install.sh` again afterwards.
 Stow refuses to overwrite existing real files (or links it doesn't own,
 including dangling ones) — move/delete them first and rerun.
-`stow -D <pkg>` unlinks, `stow -R <pkg>` relinks. Check a link with
+`stow -D <pkg>` / `stow -R <pkg>` work on single packages. Check a link with
 `ls -la ~/.zshrc` (should point into `repos/dotfiles/…`).
 
 Adding a new config: create `<pkg>/<path relative to $HOME>`, move the file
@@ -86,9 +104,11 @@ plain file.
 Refresh package lists after installing things:
 
 ```sh
-pacman -Qqen > ~/repos/dotfiles/pkglist.txt
-pacman -Qqem > ~/repos/dotfiles/aurlist.txt
+pkgs/update.sh     # writes pkgs/<host>.txt and pkgs/<host>-aur.txt
 ```
+It records whatever is installed here and **not** in the common lists. To
+share a package between hosts, move its line to `common*.txt` by hand and
+rerun on each host. It also lists common packages missing on this host.
 
 **Never commit:** SSH keys, the KeePassXC database, tokens/API keys. The repo
 is public — check before pushing:
@@ -108,48 +128,41 @@ ed25519 key added to GitHub; test with `ssh -T git@github.com`.
 
 ---
 
-## 2. Hardware notes
+## 2. Hosts
 
-| Item | Detail |
-|---|---|
-| Display | 2560×1440 (WQHD) → everything scaled to 144 DPI |
-| Keyboard | UK physical layout, **used as US** |
-| SSD | Samsung M.2 **SATA** (~256 GB), `/dev/sda`, on `ata4` / `host3` |
-| Wi-Fi | Intel 7265 (`iwlwifi`), no built-in Ethernet |
-| Camera | Standard UVC webcam, `/dev/video0` (no IR) |
-| Fingerprint | Validity VFS5011 swipe sensor, USB `138a:0017` (libfprint `vfs5011`) |
-| Battery | Replacement `45N1702`; reports 58.6 Wh vs 48.8 Wh design (~120 %) |
+Shared files hold everything common; each host adds only what differs.
+Every shared config that can differ ends with one include line:
 
-### Service history
-- Replaced **CMOS battery** and **main battery** (Nov 2026). CMOS swap
-  resets BIOS settings — re-check boot mode after any future swap.
-- **Broken ZIF connector latch** on the *mainboard* side of the ribbon to
-  the USB/Ethernet sub-board. Held with electrical tape; everything works.
-  - Next time the bottom cover is off: replace electrical tape with
-    **Kapton** (heat-resistant), optionally a foam shim for pressure.
-  - Symptom if it fails: that USB port / Ethernet dongle drops out
-    (`sudo dmesg -w | grep -i usb`).
-  - Real fix: micro-soldering a new connector (board repair shop).
+| Shared file | Includes | Required in every `host-*`? |
+|---|---|---|
+| `i3/.config/i3/config` | `include ~/.config/i3/host.conf` (last line, after the `set`s) | **yes** (may be empty) |
+| `x/.Xresources` | `#include ".Xresources.host"` — `Xft.dpi` lives only here | **yes** |
+| `zsh/.zshrc` | `~/.zshrc.local` | no |
+| `tmux/.tmux.conf` | `source-file -q ~/.tmux.local.conf` | no |
+| `vim/.vimrc` | `~/.vimrc.local` | no |
+| `git/.gitconfig` | `[include] path = ~/.gitconfig.local` | no |
 
-### SSD write timeouts (important)
-During install the SSD threw `ata4.00: failed command: WRITE FPDMA QUEUED …
-Emask 0x4 (timeout)` under heavy writes. SMART is healthy (no reallocated
-sectors, no uncorrectable/CRC errors, ~16 % wear, PASSED), so the cause is a
-firmware/link quirk, not failing flash. Mitigations, now permanent:
+Rules:
+- The two required files exist in every host package even when empty, so
+  nothing depends on how i3/xrdb treat a missing include.
+- **Host files only add.** A setting that differs between hosts lives only
+  in the host files, never in the shared file too (duplicate i3 `bindsym`s
+  warn; a stale shared value is confusing).
+- Host-only scripts go in `host-<name>/bin/`; Stow merges them with the
+  shared `bin/` into `~/bin`.
+- `system/<name>/` holds that host's boot entry, fstab and anything else
+  with machine-specific values; `system/common/` everything else.
+- Hardware notes, disk layout, quirks and service history: `hosts/<name>.md`.
 
-- Kernel params: `libata.force=noncq ahci.mobile_lpm_policy=1`
-  (NCQ off, SATA link power management at max performance)
-- Format ext4 with `-E nodiscard`; never use the `discard` mount option —
-  rely on weekly `fstrim.timer` instead.
-- The bar has a watchdog block that appears only if `ata4 … failed` shows up
-  in the kernel log.
-
-Health check any time: `sudo smartctl -H -A /dev/sda`
-
-### BIOS (F1 at boot)
-- Startup → UEFI/Legacy Boot: **UEFI Only** (the old install was legacy/MBR)
-- Security → Secure Boot: **Disabled**
-- F12 = boot menu
+Adding a host `foo`:
+```sh
+mkdir -p host-foo/.config/i3 system/foo
+cp host-ultra/.Xresources.host host-foo/       # then set its DPI
+touch host-foo/.config/i3/host.conf
+cp hosts/ultra.md hosts/foo.md                 # then rewrite
+./install.sh -n && ./install.sh
+pkgs/update.sh
+```
 
 ---
 
@@ -165,41 +178,10 @@ iwctl            # station wlan0 scan / get-networks / connect "SSID"
 timedatectl      # "System clock synchronized: yes" (UTC in live env is fine)
 ```
 
-### SSD workarounds for the live session
-Apply **before** writing to the disk:
-```sh
-echo max_performance > /sys/class/scsi_host/host3/link_power_management_policy
-echo 1   > /sys/block/sda/device/queue_depth      # NCQ off
-echo 512 > /sys/block/sda/queue/max_sectors_kb   # smaller requests
-```
-(Other `host*` entries refuse LPM changes — harmless.)
-
-### Partitioning — GPT
-| Part | Size | Type | FS | Mount |
-|---|---|---|---|---|
-| `sda1` | 1 GiB | EF00 | FAT32 `EFI` | `/boot` |
-| `sda2` | 50 GiB | 8300 | ext4 `root` | `/` |
-| `sda3` | rest (~187 GiB) | 8300 | ext4 `home` | `/home` |
-
-```sh
-sgdisk -o \
-  -n 1:0:+1G  -t 1:ef00 -c 1:EFI  \
-  -n 2:0:+50G -t 2:8300 -c 2:root \
-  -n 3:0:0    -t 3:8300 -c 3:home \
-  /dev/sda
-```
-(Mind the colons: `1:0:+1G`, not `1:0+1G`.)
-
-```sh
-mkfs.fat -F 32 -n EFI /dev/sda1
-mkfs.ext4 -E nodiscard -L root /dev/sda2
-mkfs.ext4 -E nodiscard -L home /dev/sda3
-e2fsck -fn /dev/sda2; e2fsck -fn /dev/sda3   # verify after any ata4 timeouts
-
-mount /dev/sda2 /mnt
-mount --mkdir /dev/sda1 /mnt/boot
-mount --mkdir /dev/sda3 /mnt/home
-```
+### Disk
+Partition layout, filesystems and any disk workarounds are per host — see
+`hosts/<hostname>.md`. Mount root at `/mnt`, the ESP at `/mnt/boot`,
+`/home` at `/mnt/home`.
 
 ### Base system
 ```sh
@@ -215,7 +197,7 @@ hwclock --systohc
 sed -i 's/^#en_US.UTF-8/en_US.UTF-8/' /etc/locale.gen && locale-gen
 echo LANG=en_US.UTF-8 > /etc/locale.conf
 echo KEYMAP=us > /etc/vconsole.conf
-echo ultra > /etc/hostname
+echo <hostname> > /etc/hostname
 passwd
 useradd -m -G wheel <user> && passwd <user>
 EDITOR=vim visudo           # uncomment: %wheel ALL=(ALL:ALL) ALL
@@ -243,9 +225,10 @@ timeout 3
 title   Arch Linux
 linux   /vmlinuz-linux
 initrd  /initramfs-linux.img
-options root=LABEL=root rw libata.force=noncq ahci.mobile_lpm_policy=1
+options root=LABEL=root rw <host-specific params>
 ```
-Check: `blkid /dev/sda2` shows `LABEL="root"`; `bootctl list` shows the entry.
+The real entry for each host is in `system/<host>/boot/`. Check: `blkid`
+shows the root label/UUID; `bootctl list` shows the entry.
 
 Emergency: at the boot menu press `e` to edit the options line (e.g. add
 `noresume` if a hibernation resume ever hangs).
@@ -374,7 +357,7 @@ AllowUsers <user>
 ```sh
 sudo sshd -t && sudo systemctl restart sshd   # validate first; keep a session open
 ```
-Reach it as `ultra.local` via mDNS:
+Reach it as `<hostname>.local` via mDNS:
 ```sh
 sudo pacman -S nss-mdns && sudo systemctl enable --now avahi-daemon
 ```
@@ -406,15 +389,15 @@ sudo systemctl enable bluetooth lightdm
 Do **not** install `xf86-video-intel` — modesetting is better on Broadwell.
 
 ### HiDPI
-`~/.Xresources`
-```
-Xft.dpi: 144
-```
-LightDM's session script merges it automatically. Qt apps (KeePassXC, VLC,
+`~/.Xresources` includes `~/.Xresources.host`, which comes from the host
+package and sets the DPI (ultra: `Xft.dpi: 144`). LightDM's session script
+merges it automatically (`xrdb` runs it through `cpp`, which handles the
+`#include`). Check: `xrdb -query | grep dpi`. Qt apps (KeePassXC, VLC,
 Insync) may need `export QT_SCALE_FACTOR=1.5` in `~/.xprofile`.
 
 ### LightDM
-`/etc/lightdm/lightdm-gtk-greeter.conf` → under `[greeter]`:
+`/etc/lightdm/lightdm-gtk-greeter.conf` → under `[greeter]` (per host, in
+`system/<host>/`; ultra:)
 ```
 xft-dpi=144
 ```
@@ -452,7 +435,8 @@ Cleaned up from my previous machine's config:
   `tray_output primary` (it hides the tray on a single screen).
 - Autostart: dunst, nm-applet, blueman-applet, `udiskie -ANt`, polkit-gnome
   agent, xss-lock, KeePassXC, Insync.
-- Removed: `xrandr --dpi` (DPI lives only in `.Xresources`).
+- Removed: `xrandr --dpi` (DPI lives only in `.Xresources.host`).
+- Last line includes `~/.config/i3/host.conf` (§2).
 
 Reminder: `exec` lines only run at login; `Alt+Shift+r` doesn't rerun them.
 After changing an autostart command, restart that process by hand or log
@@ -585,9 +569,10 @@ Exec = /usr/bin/pkill -SIGRTMIN+1 i3status-rs
 sudo pacman -S tlp && sudo systemctl enable --now tlp
 sudo tlp-stat -b
 ```
-Uses the `thinkpad` plugin via `natacpi` (thresholds + force-discharge).
+Which TLP plugin handles the battery is per host (ultra: `thinkpad` via
+`natacpi` — see `hosts/ultra.md`).
 
-**Charge thresholds** — `/etc/tlp.d/01-battery.conf`:
+**Charge thresholds** — `/etc/tlp.d/01-battery.conf` (in `system/<host>/`):
 ```
 START_CHARGE_THRESH_BAT0=75
 STOP_CHARGE_THRESH_BAT0=80
@@ -595,28 +580,18 @@ STOP_CHARGE_THRESH_BAT0=80
 `sudo tlp start` to apply. `sudo tlp fullcharge` = one-off 100 %
 (reverts at reboot); `sudo tlp setcharge` = back to 75/80.
 
-**Bar toggle** (`~/bin/batmode`, left-click on the battery block) needs —
+**Bar toggle** (`~/bin/batmode` from the host package, left-click on the
+battery block) needs —
 `sudo visudo -f /etc/sudoers.d/tlp`:
 ```
 <user> ALL=(root) NOPASSWD: /usr/bin/tlp fullcharge, /usr/bin/tlp setcharge
 ```
 
-**Calibration** (new battery, or when estimates drift): on AC,
-`sudo tlp recalibrate BAT0` — charges, force-discharges to empty, recharges.
-Runs in the foreground for hours; don't log out / kill tmux. If interrupted,
-the battery can be left in force-discharge (running on battery while
-plugged in). Check / reset:
-```sh
-cat /sys/class/power_supply/BAT0/charge_behaviour      # want [auto]
-echo auto | sudo tee /sys/class/power_supply/BAT0/charge_behaviour
-```
-Routine: every month or two, charge to 100 % and run it down to ~10–15 % so
-the fuel gauge stays accurate (auto-hibernate depends on it).
-
 ### Swap & hibernation
-8 GB swap file physically on the `/home` partition, **exposed outside
-`/home` via a bind mount** — `systemd-logind` runs with `ProtectHome=yes` and
-cannot see `/home/swapfile` ("Failed to get devno and offset for swap …").
+How swap is provided is per host; the host's fstab is in
+`system/<host>/etc/fstab`. On ultra: an 8 GB swap file physically on the
+`/home` partition, **exposed outside `/home` via a bind mount** —
+`systemd-logind` runs with `ProtectHome=yes` and cannot see `/home/swapfile` ("Failed to get devno and offset for swap …").
 
 ```sh
 sudo mkdir -m 700 /home/.swap /swap
@@ -687,9 +662,9 @@ the binding; not worth the debugging).
 ## 11. Fingerprint
 
 ```sh
-lsusb | grep -i 138a           # 138a:0017 Validity Sensors
+lsusb                          # find the reader (per host: hosts/<host>.md)
 sudo pacman -S fprintd
-sudo fprintd-enroll "$USER"    # swipe ~5×; plain fprintd-enroll needs a polkit agent
+sudo fprintd-enroll "$USER"    # ~5 swipes/touches; plain fprintd-enroll needs a polkit agent
 fprintd-verify
 ```
 If the reader reports "Device … is already open":
@@ -767,7 +742,8 @@ sudo pacman -S v4l-utils vlc vlc-plugins-all
 v4l2-ctl --list-devices
 vlc v4l2:///dev/video0
 ```
-If missing: BIOS → Security → I/O Port Access → Integrated Camera.
+Assumes a UVC webcam. Per-host camera notes (BIOS toggles, drivers) are
+in `hosts/<host>.md`.
 
 ### Spotify
 `sudo pacman -S spotify-launcher`;
@@ -776,6 +752,7 @@ If missing: BIOS → Security → I/O Port Access → Integrated Camera.
 [spotify]
 extra_arguments = ["--force-device-scale-factor=1.5"]
 ```
+(The 1.5 matches ultra's 144 DPI; not stowed yet, so set it per host.)
 (Terminal alternative with Premium: `ncspot`.) Media control via
 `playerctl`; i3status-rust `music` block. Spotify sets its window class
 late, so plain i3 `for_window [class="Spotify"]` rules may not apply.
@@ -801,6 +778,11 @@ geoclue gotchas (all hit on this machine):
   `[wifi]` / `url=https://api.beacondb.net/v1/geolocate`. beaconDB has no
   Wi-Fi coverage here yet, so it falls back to GeoIP (~25 km) — fine for
   sunsets.
+- gammastep is listed as an app in
+  `/etc/geoclue/conf.d/90-gammastep.conf`:
+  `[gammastep]` / `allowed=true` / `system=false` / `users=`.
+  `/etc/geoclue/geoclue.conf` stays stock (only drop-ins are kept here), so
+  package updates don't leave a `.pacnew`.
 - A geoclue **agent must be running** to authorize clients; i3 starts
   `/usr/lib/geoclue-2.0/demos/agent` before gammastep.
 - Test: `/usr/lib/geoclue-2.0/demos/where-am-i -t 30`, then `gammastep -v -p`.
@@ -813,31 +795,30 @@ or the block waits on the inherited pipe and freezes until i3 restarts.
 
 ## 13. System files checklist
 
-Kept as copies under `system/` (restore by hand):
+Kept as copies under `system/` (restore by hand). `common/` applies to every
+host; `<host>/` holds files with machine-specific values.
 
-| File | Purpose |
-|---|---|
-| `/boot/loader/loader.conf`, `/boot/loader/entries/arch.conf` | systemd-boot; SSD kernel params |
-| `/etc/fstab` (swap/bind lines) | hibernation swap |
-| `/etc/mkinitcpio.conf` | systemd hooks (default) |
-| `/etc/vconsole.conf` | `KEYMAP=us`, `FONT=ter-v24n` |
-| `/etc/X11/xorg.conf.d/00-keyboard.conf` | `ctrl:nocaps,compose:ralt` (written by localectl) |
-| `/etc/X11/xorg.conf.d/30-touchpad.conf` | tap-to-click |
-| `/etc/keyd/default.conf` | nav layer |
-| `/etc/tlp.d/01-battery.conf` | charge thresholds |
-| `/etc/sudoers.d/tlp` | passwordless threshold toggle |
-| `/etc/systemd/logind.conf` | suspend-then-hibernate |
-| `/etc/udev/rules.d/99-lowbat.rules` | hibernate at 5 % |
-| `/etc/pacman.d/hooks/i3status-rust.hook` | refresh bar after upgrades |
-| `/etc/lightdm/lightdm-gtk-greeter.conf` | greeter DPI |
-| `/etc/pam.d/sudo`, `/etc/pam.d/polkit-1` | fingerprint (grosshack) |
-| `/etc/ssh/sshd_config.d/10-hardening.conf` | key-only SSH |
-| `/etc/nsswitch.conf` | mDNS (`ultra.local`) |
+| File | Where | Purpose |
+|---|---|---|
+| `/boot/loader/loader.conf`, `/boot/loader/entries/arch.conf` | `ultra/` | systemd-boot; root and kernel params |
+| `/etc/fstab` | `ultra/` | partitions; hibernation swap |
+| `/etc/lightdm/lightdm-gtk-greeter.conf` | `ultra/` | greeter DPI |
+| `/etc/tlp.d/01-battery.conf` | `ultra/` | charge thresholds |
+| `/etc/mkinitcpio.conf` | `common/` | systemd hooks (default) |
+| `/etc/vconsole.conf` | `common/` | `KEYMAP=us` |
+| `/etc/X11/xorg.conf.d/00-keyboard.conf` | `common/` | `ctrl:nocaps,compose:ralt` (written by localectl) |
+| `/etc/X11/xorg.conf.d/30-touchpad.conf` | `common/` | tap-to-click |
+| `/etc/keyd/default.conf` | `common/` | nav layer |
+| `/etc/systemd/logind.conf` | `common/` | suspend-then-hibernate |
+| `/etc/pam.d/sudo`, `/etc/pam.d/polkit-1` | `common/` | fingerprint (grosshack) |
+| `/etc/ssh/sshd_config.d/10-hardening.conf` | `common/` | key-only SSH |
+| `/etc/geoclue/conf.d/99-beacondb.conf`, `/etc/geoclue/conf.d/90-gammastep.conf` | `common/` | location for gammastep (drop-ins; `geoclue.conf` stays stock) |
+| `/etc/nsswitch.conf` | `common/` | mDNS (`<hostname>.local`) |
 
 Services enabled: `NetworkManager`, `fstrim.timer`, `paccache.timer`, `tlp`,
 `bluetooth`, `keyd`, `lightdm`, `sshd`, `avahi-daemon`.
 
-Not in `system/` yet (not created on this machine, or not copied):
+Not in `system/` yet (not created on ultra, or not copied):
 `/etc/sudoers.d/tlp`, `/etc/udev/rules.d/99-lowbat.rules`,
 `/etc/pacman.d/hooks/i3status-rust.hook` — their contents are in §8–9.
 Usernames in copied files are replaced with `<user>`.
@@ -852,15 +833,11 @@ Usernames in copied files are replaced with `<user>`.
 - **KeePassXC lock from the lock script** — the D-Bus call was not confirmed
   working; `keepassxc --lock` works but pops up the window. Fallback:
   KeePassXC locks on suspend/lid and on inactivity.
-- **Fingerprint reader** occasionally gets stuck ("already open") →
+- **Fingerprint reader** (ultra) occasionally gets stuck ("already open") →
   `sudo systemctl restart fprintd`.
-- **Battery capacity** reports ~120 % of design — verify with a real
-  unplugged day; recalibrate if the gauge seems optimistic.
 - **Mic-mute key (F4)** may not pass through the lock screen.
 - **Screen tearing** (if noticed in Chrome): `Option "TearFree" "true"` for
   the modesetting driver.
-- **Per-host split** (`host-<name>` packages with `*.local` includes) not
-  done yet — everything is currently `ultra`-specific (DPI 144, BAT0, …).
 - **Later:** Thunar (+ gvfs, tumbler, insync-thunar);
   `xdg-desktop-portal-termfilechooser` with a terminal file manager as the
   file dialog; OSC 52 clipboard over SSH (`set -g set-clipboard on` +

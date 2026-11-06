@@ -1,4 +1,4 @@
-# i3 config — ultra (X1 Carbon Gen 3)
+# i3 config — shared by all hosts
 # See https://i3wm.org/docs/userguide.html
 
 set $mod Mod1
@@ -153,3 +153,6 @@ exec --no-startup-id gammastep
 
 
 # exec_always --no-startup-id ~/bin/desk-watch.sh
+
+# ── Per-host additions (host-<hostname>/.config/i3/host.conf) ─
+include ~/.config/i3/host.conf
