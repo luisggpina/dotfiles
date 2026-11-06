@@ -131,6 +131,17 @@ format_up_to_date = ""
 warning_updates_regex = "^linux "
 
 [[block]]
+block = "custom"
+json = true
+format = " ^icon_update $text "
+command = '''n=$(pacdiff -o | wc -l); if [ "$n" -gt 0 ]; then printf '{"text":"pacnew %s","state":"Critical"}\n' "$n"; else echo '{"text":""}'; fi'''
+interval = 3600
+hide_when_empty = true
+[[block.click]]
+button = "left"
+cmd = "alacritty -e sh -c \"sudo DIFFPROG='vim -d' pacdiff; i3status-rs-refresh 2>/dev/null; read -p 'Done, press Enter'\""
+
+[[block]]
 block = "time"
 format = " $icon $timestamp.datetime(f:'%d/%b/%g %H:%M') "
 interval = 10
