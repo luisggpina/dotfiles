@@ -1,0 +1,13 @@
+#!/bin/sh
+# Toggle battery charge limit: 75–80% (normal) <-> 100% (full charge).
+f=/sys/class/power_supply/BAT0/charge_control_end_threshold
+
+if [ "$(cat "$f")" -lt 100 ]; then
+    sudo -n tlp fullcharge >/dev/null 2>&1 \
+        && notify-send -i battery "Battery" "Charging to 100%" \
+        || notify-send -u critical "Battery" "Could not switch to full charge"
+else
+    sudo -n tlp setcharge >/dev/null 2>&1 \
+        && notify-send -i battery "Battery" "Charge limit restored (75–80%)" \
+        || notify-send -u critical "Battery" "Could not restore charge limit"
+fi

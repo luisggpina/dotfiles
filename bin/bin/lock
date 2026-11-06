@@ -1,0 +1,44 @@
+#!/bin/sh
+# Lock screen (i3lock-color): blurred desktop, big clock, small ring below.
+# Volume, media and brightness keys keep working while locked.
+# Unlock with your password OR a fingerprint swipe.
+
+# Don't stack a second lock on top of a running one
+pgrep -x i3lock >/dev/null && exit 0
+
+# Lock KeePassXC databases too (no-op if KeePassXC isn't running)
+dbus-send --session --dest=org.keepassxc.KeePassXC.MainWindow \
+    /keepassxc org.keepassxc.KeePassXC.MainWindow.lockAllDatabases \
+    >/dev/null 2>&1
+
+# Fingerprint watcher: keep asking for a swipe; on a match, end the lock
+(
+    until fprintd-verify >/dev/null 2>&1; do sleep 1; done
+    pkill -x i3lock
+) &
+fp=$!
+
+# Always run in the foreground so we know when the lock ends
+i3lock --nofork \
+    --pass-volume-keys --pass-media-keys --pass-screen-keys \
+    --blur=8 \
+    --clock --indicator \
+    \
+    --time-str="%H:%M" --date-str="%A, %d %B" \
+    --time-font="DejaVu Sans" --date-font="DejaVu Sans" \
+    --time-size=140 --date-size=32 \
+    --time-color=ebdbb2ff --date-color=d5c4a1ff \
+    --time-pos="x+w/2:y+h/2-60" --date-pos="tx:ty+70" \
+    \
+    --ind-pos="x+w/2:y+h/2+200" \
+    --radius=36 --ring-width=6 \
+    --inside-color=00000000      --ring-color=ebdbb240 \
+    --insidever-color=00000000   --ringver-color=83a598ff \
+    --insidewrong-color=00000000 --ringwrong-color=fb4934ff \
+    --line-color=00000000 --separator-color=00000000 \
+    --keyhl-color=fabd2fff --bshl-color=fb4934ff \
+    --verif-text="" --wrong-text="" --noinput-text=""
+
+# Unlocked (by password or finger): stop the watcher and release the reader
+pkill -P "$fp" 2>/dev/null
+kill "$fp" 2>/dev/null

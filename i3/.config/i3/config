@@ -1,0 +1,147 @@
+# i3 config — ultra (X1 Carbon Gen 3)
+# See https://i3wm.org/docs/userguide.html
+
+set $mod Mod1
+set $term alacritty
+
+font pango:DejaVu Sans Mono 10
+floating_modifier $mod
+
+# ── Launchers ────────────────────────────────────────────────
+bindsym $mod+Return exec $term
+#bindsym $mod+equal  exec --no-startup-id dmenu_run
+#bindsym $mod+d      exec --no-startup-id i3-dmenu-desktop
+bindsym $mod+d     exec --no-startup-id rofi -show drun
+bindsym $mod+equal exec --no-startup-id rofi -show run
+bindsym $mod+Tab   exec --no-startup-id rofi -show window
+bindsym $mod+c exec --no-startup-id rofi -show calc -modi calc -no-show-match -no-sort -calc-command "echo -n '{result}' | xclip -selection clipboard"
+
+bindsym $mod+Shift+q kill
+
+# ── Focus / move (vim keys) ──────────────────────────────────
+bindsym $mod+h focus left
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+l focus right
+
+bindsym $mod+Shift+h move left
+bindsym $mod+Shift+j move down
+bindsym $mod+Shift+k move up
+bindsym $mod+Shift+l move right
+
+bindsym $mod+Control+Shift+h move workspace to output left
+bindsym $mod+Control+Shift+j move workspace to output down
+bindsym $mod+Control+Shift+k move workspace to output up
+bindsym $mod+Control+Shift+l move workspace to output right
+
+# ── Layout ───────────────────────────────────────────────────
+bindsym $mod+Shift+v split h
+bindsym $mod+v       split v
+bindsym $mod+f       fullscreen
+
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+
+bindsym $mod+Shift+space floating toggle
+bindsym $mod+space       focus mode_toggle
+bindsym $mod+Shift+a     focus parent
+bindsym $mod+a           focus child
+
+# ── Workspaces ───────────────────────────────────────────────
+bindsym $mod+1 workspace 1
+bindsym $mod+2 workspace 2
+bindsym $mod+3 workspace 3
+bindsym $mod+4 workspace 4
+bindsym $mod+5 workspace 5
+bindsym $mod+6 workspace 6
+bindsym $mod+7 workspace 7
+bindsym $mod+8 workspace 8
+bindsym $mod+9 workspace 9
+bindsym $mod+0 workspace 10
+
+bindsym $mod+Shift+1 move container to workspace 1
+bindsym $mod+Shift+2 move container to workspace 2
+bindsym $mod+Shift+3 move container to workspace 3
+bindsym $mod+Shift+4 move container to workspace 4
+bindsym $mod+Shift+5 move container to workspace 5
+bindsym $mod+Shift+6 move container to workspace 6
+bindsym $mod+Shift+7 move container to workspace 7
+bindsym $mod+Shift+8 move container to workspace 8
+bindsym $mod+Shift+9 move container to workspace 9
+bindsym $mod+Shift+0 move container to workspace 10
+
+# ── Scratchpad ───────────────────────────────────────────────
+bindsym $mod+Shift+grave move scratchpad
+bindsym $mod+grave       scratchpad show
+
+# ── Session ──────────────────────────────────────────────────
+bindsym $mod+Shift+c reload
+bindsym $mod+Shift+r restart
+bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'Exit i3? This ends your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+#bindsym $mod+Shift+x exec --no-startup-id i3lock -c 1d2021
+bindsym $mod+Shift+x exec --no-startup-id ~/bin/lock
+
+exec --no-startup-id xss-lock --transfer-sleep-lock -- ~/bin/lock --nofork
+
+# Lock before suspend / on screensaver timeout
+exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork -c 1d2021
+
+# ── Resize mode ──────────────────────────────────────────────
+mode "resize" {
+        bindsym h resize shrink width 10 px or 10 ppt
+        bindsym j resize grow height 10 px or 10 ppt
+        bindsym k resize shrink height 10 px or 10 ppt
+        bindsym l resize grow width 10 px or 10 ppt
+
+        bindsym Return mode "default"
+        bindsym Escape mode "default"
+}
+bindsym $mod+r mode "resize"
+
+# ── Hardware keys ────────────────────────────────────────────
+bindsym XF86AudioRaiseVolume  exec --no-startup-id wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+bindsym XF86AudioLowerVolume  exec --no-startup-id wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindsym XF86AudioMute         exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+bindsym XF86AudioMicMute      exec --no-startup-id wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
+bindsym XF86MonBrightnessUp   exec --no-startup-id brightnessctl set +10%
+bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 10%-
+
+# ── Notifications ────────────────────────────────────────────
+bindsym $mod+Control+Shift+space exec --no-startup-id dunstctl close-all
+
+# ── Bar ──────────────────────────────────────────────────────
+bar {
+        font pango:MesloLGS Nerd Font 9
+        status_command i3status-rs
+        colors {
+                separator  #666666
+                background #282828
+                statusline #ebdbb2
+                focused_workspace  #bf3f34 #bf3f34 #111111
+                active_workspace   #3c3836 #3c3836 #ebdbb2
+                inactive_workspace #282828 #282828 #a89984
+                urgent_workspace   #cc241d #cc241d #ebdbb2
+        }
+}
+
+# ── Windows ──────────────────────────────────────────────────
+for_window [class="Alacritty"]       border pixel 1
+for_window [class="cool-retro-term"] border pixel 1
+for_window [class="Zathura"]         border pixel 1
+for_window [class="qv4l2"]           border pixel 1
+for_window [class="qv4l2"]           sticky enable
+
+# class                 border  backgr. text    indicator
+client.focused          #bf3f34 #bf3f34 #111111 #bf3f34
+
+# ── Autostart ────────────────────────────────────────────────
+exec --no-startup-id dunst
+exec --no-startup-id nm-applet
+exec --no-startup-id blueman-applet
+exec --no-startup-id udiskie -ANt
+exec --no-startup-id insync start
+exec --no-startup-id keepassxc
+exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+
+# exec_always --no-startup-id ~/bin/desk-watch.sh

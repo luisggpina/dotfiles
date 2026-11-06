@@ -1,0 +1,13 @@
+configuration {
+    modi: "drun,run,window";
+    show-icons: true;
+    font: "DejaVu Sans Mono 11";
+    matching: "fuzzy";
+    drun-display-format: "{name}";
+
+    kb-row-up: "Up,Control+k";
+    kb-row-down: "Down,Control+j";
+    kb-accept-entry: "Return,KP_Enter";
+    kb-remove-to-eol: "";
+}
+@theme "gruvbox-dark"
