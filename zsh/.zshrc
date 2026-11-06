@@ -46,9 +46,8 @@ DISABLE_CORRECTION="true"
 # Uncomment following line if you want red dots to be displayed while waiting for completion
 # COMPLETION_WAITING_DOTS="true"
 
-if [[ -z "$TMUX" && -o interactive && -z "$SSH_CONNECTION" ]];
-then
-	exec tmux new-session
+if [[ -z "$TMUX" && -o interactive && -n "$DISPLAY" && -z "$SSH_CONNECTION" ]]; then
+  tmux new-session && exit
 fi
 
 source $ZSH/oh-my-zsh.sh
