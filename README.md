@@ -40,12 +40,15 @@ folder is a "package" whose contents mirror `$HOME`. `stow <pkg>` symlinks
 them into place. The repo lives at **`~/repos/dotfiles`**; a `.stowrc`
 containing `--target=~` makes Stow link into `$HOME` regardless of where the
 repo is (by default Stow links into the repo's *parent* directory — that bit
-me once, putting every link in `~/repos/`).
+me once, putting every link in `~/repos/`). `--no-folding` makes Stow create
+real directories (`~/.config`, `~/bin`, …) and link individual files, instead
+of linking a whole directory into the repo when it doesn't exist yet —
+otherwise anything an app later writes there would land in the repo.
 
 ```
 ~/repos/dotfiles/
-├── .stowrc            ← --target=~
-├── install.sh         ← stow shared packages + host-$(uname -n)
+├── .stowrc            ← --target=~ --no-folding
+├── install.sh         ← stow packages (all, or one at a time)
 ├── zsh/.zshrc  zsh/.zprofile          ┐
 ├── tmux/.tmux.conf                    │
 ├── vim/.vimrc                         │
@@ -89,12 +92,26 @@ yay -S --needed - < pkgs/$(uname -n)-aur.txt
 ./install.sh
 ```
 
-`install.sh -D` unlinks everything — do that **before** pulling a commit
-that moves files between packages, then `./install.sh` again afterwards.
-Stow refuses to overwrite existing real files (or links it doesn't own,
-including dangling ones) — move/delete them first and rerun.
-`stow -D <pkg>` / `stow -R <pkg>` work on single packages. Check a link with
-`ls -la ~/.zshrc` (should point into `repos/dotfiles/…`).
+Porting a machine piece by piece — link packages one at a time and check
+each before moving on:
+```sh
+./install.sh -l              # every package: linked / partial / not linked / conflict
+./install.sh zsh tmux        # just these
+./install.sh host            # this machine's host-<hostname>
+./install.sh -D tmux         # unlink one
+./install.sh -R i3           # relink after adding/removing files in a package
+./install.sh -h              # usage
+```
+`x` and `i3` include files from the host package, so the script reminds you
+to link `host` with them. A full `./install.sh` needs `host-<hostname>` to
+exist; naming packages works without it.
+
+`install.sh -D` (no package names) unlinks everything — do that **before**
+pulling a commit that moves files between packages, then `./install.sh`
+again afterwards. Stow refuses to overwrite existing real files (or links it
+doesn't own, including dangling ones); `-l` shows those as `conflict` —
+move/delete them and rerun. Check a link with `ls -la ~/.zshrc` (should
+point into `repos/dotfiles/…`).
 
 Adding a new config: create `<pkg>/<path relative to $HOME>`, move the file
 there, `stow <pkg>`. Tools that rewrite their config by replacing the file
