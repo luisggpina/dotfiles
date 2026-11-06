@@ -60,7 +60,7 @@ otherwise anything an app later writes there would land in the repo.
 ├── alacritty/.config/alacritty/alacritty.toml
 ├── dunst/.config/dunst/dunstrc        │
 ├── gammastep/.config/gammastep/config.ini
-├── bin/bin/lock                       ┘
+├── bin/bin/{lock,git-vimdiff}
 ├── host-ultra/        ← only what differs on ultra (see §2)
 │   ├── .Xresources.host
 │   ├── .config/i3/host.conf
@@ -142,6 +142,15 @@ git config --global user.email "luisggpina@users.noreply.github.com"
 ```
 (Stored in `git/.gitconfig`.) The laptop pushes over SSH with its own
 ed25519 key added to GitHub; test with `ssh -T git@github.com`.
+
+### git diff in vimdiff
+`git diff` opens each changed file side by side in vim (`:qa` → next file).
+`git/.gitconfig` sets `diff.external = git-vimdiff` (the wrapper is
+`bin/bin/git-vimdiff`, so `~/bin` must be on `PATH`) and `pager.diff = false`
+(otherwise git pipes through `less` and vim can't take the screen).
+Side effect: anything that pipes `git diff` launches vim — use
+**`git difff`** (`diff --no-ext-diff`) for plain text, e.g. `git difff | xclip`.
+`git diff --stat`, `git add -p`, `git log -p` and `git show` are unaffected.
 
 ---
 

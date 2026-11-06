@@ -1,0 +1,3 @@
+#!/bin/sh
+# git external diff (diff.external): $1=path $2=old-file ... $5=new-file
+exec vim -d "$2" "$5" </dev/tty >/dev/tty

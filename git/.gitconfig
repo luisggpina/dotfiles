@@ -11,6 +11,7 @@
 [push]
     autoSetupRemote = true
 [diff]
+    external = git-vimdiff
     tool = vimdiff
     algorithm = histogram
 [difftool]
@@ -20,7 +21,10 @@
     conflictStyle = zdiff3
 [mergetool]
     keepBackup = false
+[pager]
+    diff = false
 [alias]
     follow = log --follow
+    difff = diff --no-ext-diff
 [include]
     path = ~/.gitconfig.local
