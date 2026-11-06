@@ -4,8 +4,10 @@ base-devel
 brightnessctl
 btop
 clang
+cool-retro-term
 dmenu
 dunst
+flameshot
 fprintd
 fzf
 git
@@ -43,6 +45,7 @@ stow
 sudo
 tlp
 tmux
+tree
 ttf-dejavu
 ttf-meslo-nerd
 v4l-utils
@@ -52,6 +55,7 @@ wireplumber
 xclip
 xf86-input-libinput
 xorg-server
+xorg-xev
 xorg-xinit
 xorg-xrandr
 xorg-xset

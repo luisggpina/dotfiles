@@ -135,6 +135,10 @@ for_window [class="qv4l2"]           sticky enable
 # class                 border  backgr. text    indicator
 client.focused          #bf3f34 #bf3f34 #111111 #bf3f34
 
+# ── Screen-shots ─────────────────────────────────────────────
+bindsym Print       exec --no-startup-id flameshot gui
+bindsym Shift+Print exec --no-startup-id flameshot full --path ~/scrots
+
 # ── Autostart ────────────────────────────────────────────────
 exec --no-startup-id dunst
 exec --no-startup-id nm-applet
@@ -143,5 +147,7 @@ exec --no-startup-id udiskie -ANt
 exec --no-startup-id insync start
 exec --no-startup-id keepassxc
 exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+exec --no-startup-id flameshot
+
 
 # exec_always --no-startup-id ~/bin/desk-watch.sh
