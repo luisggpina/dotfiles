@@ -60,6 +60,7 @@ otherwise anything an app later writes there would land in the repo.
 ├── alacritty/.config/alacritty/alacritty.toml
 ├── dunst/.config/dunst/dunstrc        │
 ├── gammastep/.config/gammastep/config.ini
+├── gtk/.config/gtk-{3,4}.0/settings.ini  ← GTK font (Chrome UI, §6)
 ├── bin/bin/{lock,git-vimdiff}
 ├── host-ultra/        ← only what differs on ultra (see §2)
 │   ├── .Xresources.host
@@ -404,7 +405,7 @@ changes don't touch sshd.
 sudo pacman -S xorg-server xf86-input-libinput mesa intel-media-driver \
   xorg-xset xorg-xrandr xclip \
   i3-wm xss-lock alacritty rofi \
-  ttf-dejavu noto-fonts ttf-meslo-nerd \
+  ttf-dejavu noto-fonts noto-fonts-emoji ttf-liberation ttf-meslo-nerd \
   pipewire pipewire-pulse wireplumber pavucontrol \
   brightnessctl network-manager-applet playerctl \
   dunst libnotify blueman bluez bluez-utils udiskie \
@@ -420,6 +421,27 @@ package and sets the DPI (ultra: `Xft.dpi: 144`). LightDM's session script
 merges it automatically (`xrdb` runs it through `cpp`, which handles the
 `#include`). Check: `xrdb -query | grep dpi`. Qt apps (KeePassXC, VLC,
 Insync) may need `export QT_SCALE_FACTOR=1.5` in `~/.xprofile`.
+
+### Fonts
+- `noto-fonts-emoji` — color emoji (without it Chrome shows nothing/boxes).
+- `ttf-liberation` — metric-compatible Arial / Times New Roman / Courier New;
+  fontconfig maps those names to it, so web pages lay out as designed
+  instead of falling back to wider DejaVu.
+- **GTK settings** (`gtk` package): Chrome draws its tab strip and menus with
+  the GTK font, which a bare i3 setup never configures — tab titles came out
+  cramped. `~/.config/gtk-{3,4}.0/settings.ini`:
+  ```ini
+  [Settings]
+  gtk-font-name=Noto Sans 10
+  gtk-xft-antialias=1
+  gtk-xft-hinting=1
+  gtk-xft-hintstyle=hintslight
+  gtk-xft-rgba=rgb
+  ```
+  Restart Chrome fully (`pkill chrome`) after changing fonts. If a screen
+  shows color fringes, use `gtk-xft-rgba=none`.
+- No `fonts.conf` needed: fontconfig already defaults to slight hinting
+  (`fc-match -v sans-serif | grep hintstyle` → `1`).
 
 ### LightDM
 `/etc/lightdm/lightdm-gtk-greeter.conf` → under `[greeter]` (per host, in

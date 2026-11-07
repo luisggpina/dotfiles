@@ -33,6 +33,7 @@ mesa
 network-manager-applet
 networkmanager
 noto-fonts
+noto-fonts-emoji
 openssh
 pacman-contrib
 pavucontrol
@@ -49,6 +50,7 @@ tlp
 tmux
 tree
 ttf-dejavu
+ttf-liberation
 ttf-meslo-nerd
 v4l-utils
 vlc
