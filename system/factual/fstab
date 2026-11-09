@@ -1,0 +1,17 @@
+# Static information about the filesystems.
+# See fstab(5) for details.
+
+# <file system> <dir> <type> <options> <dump> <pass>
+# /dev/nvme0n1p2
+UUID=d5696e87-9217-44bf-9b03-472c14936564	/         	ext4      	rw,relatime	0 1
+
+# /dev/nvme0n1p1
+UUID=1763-BA2C      	/boot     	vfat      	rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=ascii,shortname=mixed,utf8,errors=remount-ro	0 2
+
+
+# /dev/nvme0n1p3
+UUID=63887356-be77-45e9-bdc8-069f116f1efa	/home	ext4	rw,relatime	0 2
+
+# Swap file on /home, bind-mounted to /swap so logind can see it (hibernation)
+/home/.swap     /swap  none  bind      0 0
+/swap/swapfile  none   swap  defaults  0 0
