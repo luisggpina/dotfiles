@@ -152,7 +152,5 @@ exec --no-startup-id /usr/lib/geoclue-2.0/demos/agent
 exec --no-startup-id gammastep
 
 
-# exec_always --no-startup-id ~/bin/desk-watch.sh
-
 # ── Per-host additions (host-<hostname>/.config/i3/host.conf) ─
 include ~/.config/i3/host.conf
