@@ -1,0 +1,9 @@
+#!/bin/sh
+# Update the time zone from IP geolocation when a network connection comes up.
+# $1 = interface, $2 = action. VPNs report "vpn-up", so they're ignored.
+[ "$2" = "up" ] || exit 0
+(
+    sleep 5    # let DNS and routing settle first
+    out=$(tzupdate 2>&1)
+    logger -t tzupdate "$1: $out"
+) &

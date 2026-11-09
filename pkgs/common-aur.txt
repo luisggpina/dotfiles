@@ -2,6 +2,7 @@ google-chrome
 i3lock-color
 insync
 pam-fprint-grosshack
+tzupdate
 yay-bin
 yay-bin-debug
 zsh-theme-powerlevel10k

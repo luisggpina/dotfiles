@@ -228,7 +228,7 @@ echo <hostname> > /etc/hostname
 passwd
 useradd -m -G wheel <user> && passwd <user>
 EDITOR=vim visudo           # uncomment: %wheel ALL=(ALL:ALL) ALL
-systemctl enable NetworkManager fstrim.timer
+systemctl enable NetworkManager NetworkManager-dispatcher fstrim.timer systemd-timesyncd
 ```
 
 `/etc/mkinitcpio.conf` keeps the default **systemd-based** hooks (needed for
@@ -284,6 +284,44 @@ sudo pacman -S pacman-contrib && sudo systemctl enable --now paccache.timer
 
 Console font (readable at 1440p): `sudo pacman -S terminus-font`, then add
 `FONT=ter-v24n` to `/etc/vconsole.conf`.
+
+### Time sync & time zone
+Arch ships `systemd-timesyncd` but doesn't enable it (missed on ultra at
+first — the clock ran off the RTC, which the CMOS battery swap had reset):
+```sh
+sudo timedatectl set-ntp true      # enables + starts systemd-timesyncd
+timedatectl                        # "System clock synchronized: yes", "RTC in local TZ: no"
+sudo hwclock --systohc             # write the corrected time to the RTC (kept in UTC)
+```
+Default (Arch pool) servers are fine.
+
+**Time zone follows the network** via `tzupdate` (AUR, IP geolocation) and a
+NetworkManager dispatcher script,
+`/etc/NetworkManager/dispatcher.d/90-tzupdate`:
+```sh
+#!/bin/sh
+# Update the time zone from IP geolocation when a network connection comes up.
+# $1 = interface, $2 = action. VPNs report "vpn-up", so they're ignored.
+[ "$2" = "up" ] || exit 0
+(
+    sleep 5    # let DNS and routing settle first
+    out=$(tzupdate 2>&1)
+    logger -t tzupdate "$1: $out"
+) &
+```
+- The script must be **owned by root and not group/world-writable**, or
+  NetworkManager silently skips it — git doesn't keep ownership, so after
+  restoring from `system/`:
+  `sudo chown root:root …/90-tzupdate && sudo chmod 755 …/90-tzupdate`.
+- Needs `NetworkManager-dispatcher` enabled (above).
+- Log: `journalctl -t tzupdate`. Test by toggling Wi-Fi
+  (`nmcli radio wifi off; nmcli radio wifi on`).
+- **VPN caveat:** if the UIC VPN is already up when Wi-Fi reconnects, the
+  lookup sees Chicago. Connect Wi-Fi first, then the VPN.
+- Manual override: `sudo timedatectl set-timezone Europe/Lisbon`.
+- Programs started before a change (Chrome, open shells) keep the old zone
+  until restarted; the bar clock updates itself. gammastep needs nothing —
+  it gets the location from geoclue.
 
 ---
 
@@ -862,9 +900,11 @@ host; `<host>/` holds files with machine-specific values.
 | `/etc/ssh/sshd_config.d/10-hardening.conf` | `common/` | key-only SSH |
 | `/etc/geoclue/conf.d/99-beacondb.conf`, `/etc/geoclue/conf.d/90-gammastep.conf` | `common/` | location for gammastep (drop-ins; `geoclue.conf` stays stock) |
 | `/etc/nsswitch.conf` | `common/` | mDNS (`<hostname>.local`) |
+| `/etc/NetworkManager/dispatcher.d/90-tzupdate` | `common/` | time zone from IP on connect (restore as root:root, 755) |
 
 Services enabled: `NetworkManager`, `fstrim.timer`, `paccache.timer`, `tlp`,
-`bluetooth`, `keyd`, `lightdm`, `sshd`, `avahi-daemon`.
+`bluetooth`, `keyd`, `lightdm`, `sshd`, `avahi-daemon`, `systemd-timesyncd`,
+`NetworkManager-dispatcher`.
 
 Not in `system/` yet (not created on ultra, or not copied):
 `/etc/sudoers.d/tlp`, `/etc/udev/rules.d/99-lowbat.rules`,
