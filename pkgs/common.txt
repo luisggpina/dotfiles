@@ -39,6 +39,7 @@ pacman-contrib
 pavucontrol
 pipewire
 pipewire-pulse
+playerctl
 polkit-gnome
 ripgrep
 rofi
