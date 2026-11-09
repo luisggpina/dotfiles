@@ -11,3 +11,4 @@ configuration {
     kb-remove-to-eol: "";
 }
 @theme "gruvbox-dark"
+@import "~/.config/rofi/host.rasi"

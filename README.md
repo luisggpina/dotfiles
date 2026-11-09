@@ -164,6 +164,7 @@ Every shared config that can differ ends with one include line:
 |---|---|---|
 | `i3/.config/i3/config` | `include ~/.config/i3/host.conf` (last line, after the `set`s) | **yes** (may be empty) |
 | `x/.Xresources` | `#include ".Xresources.host"` — `Xft.dpi` lives only here | **yes** |
+| `rofi/.config/rofi/config.rasi` | `@import "~/.config/rofi/host.rasi"` — rofi ignores `Xft.dpi`, so its `dpi` lives here | **yes** |
 | `zsh/.zshrc` | `~/.zshrc.local` | no |
 | `tmux/.tmux.conf` | `source-file -q ~/.tmux.local.conf` | no |
 | `vim/.vimrc` | `~/.vimrc.local` | no |
