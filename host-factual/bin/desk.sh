@@ -101,7 +101,7 @@ LAYOUTS='office desk laptop'
 
 layout_office() {
 	cat <<'EOF'
-tv       4096x2160  1     0x0
+tv       3840x2160  1     0x0
 monitor  3840x2160  1.25  4096x1228  primary
 laptop   2880x1800  1.25  8896x1228
 EOF
