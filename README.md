@@ -508,6 +508,16 @@ Section "InputClass"
 EndSection
 ```
 
+### Touchscreen — `/etc/X11/xorg.conf.d/40-touchscreen-off.conf`
+Any touchscreen is ignored (factual's ELAN panel; no-op elsewhere):
+```
+Section "InputClass"
+	Identifier "touchscreen-off"
+	MatchIsTouchscreen "on"
+	Option "Ignore" "on"
+EndSection
+```
+
 ### i3 (`~/.config/i3/config`)
 Cleaned up from my previous machine's config:
 - `$mod` = **Alt** (Mod1) — Left Win is free for the keyd nav layer.
@@ -888,12 +898,13 @@ host; `<host>/` holds files with machine-specific values.
 |---|---|---|
 | `/boot/loader/loader.conf`, `/boot/loader/entries/arch.conf` | `ultra/` | systemd-boot; root and kernel params |
 | `/etc/fstab` | `ultra/` | partitions; hibernation swap |
-| `/etc/lightdm/lightdm-gtk-greeter.conf` | `ultra/` | greeter DPI |
+| `/etc/lightdm/lightdm-gtk-greeter.conf` | `<host>/` | greeter DPI |
 | `/etc/tlp.d/01-battery.conf` | `ultra/` | charge thresholds |
 | `/etc/mkinitcpio.conf` | `common/` | systemd hooks (default) |
 | `/etc/vconsole.conf` | `common/` | `KEYMAP=us` |
 | `/etc/X11/xorg.conf.d/00-keyboard.conf` | `common/` | `ctrl:nocaps,compose:ralt` (written by localectl) |
 | `/etc/X11/xorg.conf.d/30-touchpad.conf` | `common/` | tap-to-click |
+| `/etc/X11/xorg.conf.d/40-touchscreen-off.conf` | `common/` | ignore any touchscreen |
 | `/etc/keyd/default.conf` | `common/` | nav layer |
 | `/etc/systemd/logind.conf` | `common/` | suspend-then-hibernate |
 | `/etc/pam.d/sudo`, `/etc/pam.d/polkit-1` | `common/` | fingerprint (grosshack) |
