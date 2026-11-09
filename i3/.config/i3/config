@@ -120,6 +120,8 @@ bindsym $mod+Control+Shift+space exec --no-startup-id dunstctl close-all
 bar {
         font pango:MesloLGS Nerd Font 9
         status_command i3status-rs
+        tray_output primary
+        tray_output eDP-1
         colors {
                 separator  #666666
                 background #282828
