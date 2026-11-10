@@ -1,0 +1,24 @@
+#!/bin/sh
+# Bar block: USB-C charger power, coloured by whether it is enough.
+# Prints i3status-rust custom-block JSON; empty text (block hidden) without a
+# USB-C charger, so it also stays hidden on machines that have none.
+FULL=60   # W this laptop can draw; at or above: full power (green)
+MIN=30    # W below which a charger is too weak to be useful (red)
+PS=${PS:-/sys/class/power_supply}
+
+w=0
+for d in "$PS"/ucsi-source-psy-*; do
+    [ "$(cat "$d/online" 2>/dev/null)" = 1 ] || continue
+    p=$(( $(cat "$d/voltage_now") / 1000 * ($(cat "$d/current_max") / 1000) / 1000000 ))
+    [ "$p" -gt "$w" ] && w=$p
+done
+
+if [ "$w" -eq 0 ]; then
+    echo '{"text":""}'
+elif [ "$(cat "$PS/BAT0/status" 2>/dev/null)" = Discharging ] || [ "$w" -lt "$MIN" ]; then
+    printf '{"text":"⚠ %sW","state":"Critical"}\n' "$w"
+elif [ "$w" -lt "$FULL" ]; then
+    printf '{"text":"⚡%sW","state":"Warning"}\n' "$w"
+else
+    printf '{"text":"⚡%sW","state":"Good"}\n' "$w"
+fi
