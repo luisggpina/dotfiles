@@ -1,0 +1,2 @@
+// rofi ignores Xft.dpi; match it here
+configuration { dpi: 160; }
