@@ -24,6 +24,16 @@ call plug#end()
 " plug#end() already runs `filetype plugin indent on` and `syntax enable`
 
 " ── Look ──────────────────────────────────────────────────────
+" gruvbox marks spelling with a curly underline, which doesn't survive tmux;
+" use plain underlines instead (re-applied whenever a colorscheme loads)
+augroup spellcolors
+  autocmd!
+  autocmd ColorScheme * highlight SpellBad   gui=underline cterm=underline guifg=#fb4934 guisp=NONE
+  autocmd ColorScheme * highlight SpellCap   gui=underline cterm=underline guifg=#fabd2f guisp=NONE
+  autocmd ColorScheme * highlight SpellRare  gui=underline cterm=underline guisp=NONE
+  autocmd ColorScheme * highlight SpellLocal gui=underline cterm=underline guisp=NONE
+augroup END
+
 set termguicolors
 set background=dark
 silent! colorscheme gruvbox
