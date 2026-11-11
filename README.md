@@ -783,6 +783,9 @@ Polkit agent (also needed for KeePassXC quick unlock, udiskie, etc.):
 exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 ```
 
+In polkit dialogs, grosshack reads the finger right away but only finishes
+on Enter: touch, then press Enter on the empty field.
+
 Face unlock (Howdy) deliberately **not** used: no IR camera, so a photo can
 fool it.
 
@@ -908,7 +911,7 @@ host; `<host>/` holds files with machine-specific values.
 | `/etc/X11/xorg.conf.d/40-touchscreen-off.conf` | `common/` | ignore any touchscreen |
 | `/etc/keyd/default.conf` | `common/` | nav layer |
 | `/etc/systemd/logind.conf` | `common/` | suspend-then-hibernate |
-| `/etc/pam.d/sudo`, `/etc/pam.d/polkit-1` | `common/` | fingerprint (grosshack) |
+| `/etc/pam.d/sudo`, `/etc/pam.d/polkit-1`, `/etc/pam.d/lightdm` | `common/` | fingerprint (grosshack) |
 | `/etc/ssh/sshd_config.d/10-hardening.conf` | `common/` | key-only SSH |
 | `/etc/geoclue/conf.d/99-beacondb.conf`, `/etc/geoclue/conf.d/90-gammastep.conf` | `common/` | location for gammastep (drop-ins; `geoclue.conf` stays stock) |
 | `/etc/nsswitch.conf` | `common/` | mDNS (`<hostname>.local`) |
