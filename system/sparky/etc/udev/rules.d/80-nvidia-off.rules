@@ -1,0 +1,6 @@
+# sparky: power down the unused NVIDIA GPU (D3cold) through the kernel's
+# runtime PM. The card has no driver (see /etc/modprobe.d/nvidia-off.conf);
+# with power/control=auto on the card and on its PCIe root port, the port
+# suspends and cuts power to the slot. ~12 W saved at idle.
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x030200", ATTR{power/control}="auto"
+ACTION=="add", SUBSYSTEM=="pci", KERNEL=="0000:00:01.0", ATTR{power/control}="auto"
