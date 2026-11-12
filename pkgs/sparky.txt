@@ -102,6 +102,7 @@ offlineimap
 openconnect
 openscad
 otf-latin-modern
+openrgb
 pamixer
 patch
 pcsclite
