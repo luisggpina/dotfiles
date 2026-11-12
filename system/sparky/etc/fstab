@@ -1,0 +1,18 @@
+# Static information about the filesystems.
+# See fstab(5) for details.
+
+# <file system> <dir> <type> <options> <dump> <pass>
+# /dev/nvme0n1p2
+#UUID=80b296d7-8bfa-41f8-bd03-90861aca718a	/         	f2fs      	rw,relatime,lazytime,background_gc=on,discard,no_heap,inline_xattr,inline_data,inline_dentry,flush_merge,extent_cache,mode=adaptive,active_logs=6,alloc_mode=default,fsync_mode=posix	0 0
+UUID=c00a07ef-c30d-462e-b0ed-551a920cd5e1	/         	ext4      	rw,relatime	0 0
+
+
+# /dev/nvme0n1p1 LABEL=ESP
+UUID=3ADD-B881      	/boot      	vfat      	rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro	0 2
+
+# /dev/nvme0n1p3
+UUID=0313d3bc-4037-4acc-9088-0895cc82820f	/home     	ext4      	rw,relatime	0 2
+
+# /dev/nvme0n1p4
+UUID=3af2ad28-a5ab-4e15-b92b-318f87782b64	none      	swap      	defaults  	0 0
+

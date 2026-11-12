@@ -18,8 +18,8 @@ Lives docked (Dell WD19TB) with two external screens, lid open.
 | CPU / GPU | i7-9750H; Intel UHD 630 drives everything; NVIDIA GTX 1650 Mobile (TU117) kept **off** — see below |
 | Display | 3840×2160 on 15.6" → 220 DPI, unscaled |
 | RAM | 2 × 32 GB Kingston `KF3200C20S4/32GX` (matched), at 2933 MT/s |
-| Storage | Toshiba XG6 NVMe: ESP on `/efi`, ext4 `/`, ext4 `/home`, 23 GB swap partition |
-| Boot | GRUB; firmware 1.2.3 (2019) |
+| Storage | Toshiba XG6 NVMe: ESP on `/boot`, ext4 `/`, ext4 `/home`, 23 GB swap partition |
+| Boot | systemd-boot; firmware 1.2.3 (2019) |
 | Network | Ethernet through the dock (`r8152`); Wi-Fi Killer AX1650x (`iwlwifi`) |
 | Fingerprint | Goodix `27c6:5395` — **not supported by libfprint**; the shared PAM files skip the fingerprint modules when they're missing |
 | Battery | `DELL GPM0365`, ~78 % of design (Nov 2026); TLP `dell` plugin, 75/80 thresholds, `charge_types` = Custom |
@@ -85,13 +85,6 @@ error, a cold boot clears it.
 - `logind.conf` stays stock (plain suspend): no hibernation here, the swap
   partition (23 GB) is too small for 64 GB of RAM. `mkinitcpio.conf`
   matches the shared one.
-- Pinned to the Arch Linux Archive for **2026-08-20** (Sparky's last full
-  upgrade) in `/etc/pacman.d/mirrorlist`; the normal list is saved as
-  `mirrorlist.normal`. This let the shared packages install mid-semester
-  without a partial upgrade. At the break: restore the mirrorlist,
-  `pacman -Syu`, and watch the DKMS modules (`nvidia-open-dkms`,
-  `vmware-*-dkms`).
-- The dead `[community]` repo is commented out in `pacman.conf`.
 
 ## Account
 User renamed `lganchin` → `luispina` (UID 1000) on 2026-11-12.
@@ -99,17 +92,9 @@ User renamed `lganchin` → `luispina` (UID 1000) on 2026-11-12.
 (Docker `data-root`, Insync, conda, VMs, …) keep working.
 
 ## Open items
-- **Weather in °C** on i3status-rust 0.36.1 despite `units = "imperial"`
-  under `[block.service]`. Recheck after the full upgrade; newer versions
-  take `units` at block level.
 - **`sparky` doesn't resolve** from other machines (`ultra`/`factual` do).
 - Rename leftovers: 16 travel Wi-Fi connections restricted to
   `user:lganchin`; Docker `data-root` still under `/home/lganchin`.
-- Remove the `video=1366x768` kernel parameter (floods dmesg with i915
-  warnings).
-- Greeter DPI (`system/sparky/etc/lightdm/lightdm-gtk-greeter.conf`).
-- Old packages to remove: `lightdm-webkit2-greeter`, `bumblebee-status`,
-  `betterlockscreen`; merge `lightdm.conf.pacnew`.
 - Firmware 1.2.3 is old; update at a break.
 - RVM / Jekyll (together with factual).
 - `~/repos/dotfiles-old` holds the previous setup, mutt included.
