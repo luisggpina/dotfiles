@@ -33,6 +33,7 @@ mesa
 network-manager-applet
 networkmanager
 noto-fonts
+noto-fonts-cjk
 noto-fonts-emoji
 openssh
 pacman-contrib
