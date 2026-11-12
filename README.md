@@ -283,6 +283,16 @@ sudo pacman -S pacman-contrib && sudo systemctl enable --now paccache.timer
 ```
 (Keeps the 50 GB root from filling with old packages.)
 
+
+Mirrors — `/etc/xdg/reflector/reflector.conf` (in `system/common/`): the 10
+fastest of the 20 most recently synced US HTTPS mirrors. No `reflector.timer`;
+refresh by hand as the first step of every upgrade:
+```sh
+sudo systemctl start reflector.service
+yay -Syu          # repos first, AUR afterwards
+```
+
+
 Console font (readable at 1440p): `sudo pacman -S terminus-font`, then add
 `FONT=ter-v24n` to `/etc/vconsole.conf`.
 

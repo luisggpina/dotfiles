@@ -35,6 +35,7 @@ networkmanager
 noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
+nss-mdns
 openssh
 pacman-contrib
 pavucontrol
@@ -42,6 +43,7 @@ pipewire
 pipewire-pulse
 playerctl
 polkit-gnome
+reflector
 ripgrep
 rofi
 rofi-calc
