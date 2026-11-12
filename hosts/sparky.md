@@ -82,6 +82,9 @@ binds) and `nvidia-smi`. Never use bbswitch. If the driver reports the WPR2
 error, a cold boot clears it.
 
 ## Packages and upgrades
+- `logind.conf` stays stock (plain suspend): no hibernation here, the swap
+  partition (23 GB) is too small for 64 GB of RAM. `mkinitcpio.conf`
+  matches the shared one.
 - Pinned to the Arch Linux Archive for **2026-08-20** (Sparky's last full
   upgrade) in `/etc/pacman.d/mirrorlist`; the normal list is saved as
   `mirrorlist.normal`. This let the shared packages install mid-semester
@@ -104,8 +107,7 @@ User renamed `lganchin` → `luispina` (UID 1000) on 2026-11-12.
   `user:lganchin`; Docker `data-root` still under `/home/lganchin`.
 - Remove the `video=1366x768` kernel parameter (floods dmesg with i915
   warnings).
-- Remaining system files: nsswitch, PAM, vconsole, logind (no hibernation
-  here: 23 GB swap vs 64 GB RAM), mkinitcpio, greeter DPI.
+- Greeter DPI (`system/sparky/etc/lightdm/lightdm-gtk-greeter.conf`).
 - Old packages to remove: `lightdm-webkit2-greeter`, `bumblebee-status`,
   `betterlockscreen`; merge `lightdm.conf.pacnew`.
 - Firmware 1.2.3 is old; update at a break.
