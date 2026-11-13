@@ -7,10 +7,13 @@ one-off workarounds live in `hosts/<hostname>.md`.
 | Host | Machine | Notes |
 |---|---|---|
 | `ultra` | ThinkPad X1 Carbon Gen 3 (2015) | [hosts/ultra.md](hosts/ultra.md) |
+| `factual` | Dell XPS 13 9340 (2024) | [hosts/factual.md](hosts/factual.md) |
+| `sparky` | Dell XPS 15 7590 (2019), lives docked | [hosts/sparky.md](hosts/sparky.md) |
 
 - **Desktop:** i3 (X11) · i3status-rust bar · rofi · Alacritty · tmux · zsh
 - **Login:** LightDM · **Lock:** i3lock-color via xss-lock
 - **Power:** TLP, charge thresholds 75–80 %, suspend-then-hibernate
+  (sparky: plain suspend — see its notes)
 
 ---
 
@@ -61,20 +64,22 @@ otherwise anything an app later writes there would land in the repo.
 ├── dunst/.config/dunst/dunstrc        │
 ├── gammastep/.config/gammastep/config.ini
 ├── gtk/.config/gtk-{3,4}.0/settings.ini  ← GTK font (Chrome UI, §6)
-├── bin/bin/{lock,git-vimdiff}
-├── host-ultra/        ← only what differs on ultra (see §2)
+├── bin/bin/{lock,git-vimdiff,batmode,charger}
+├── host-<name>/       ← only what differs on that host (see §2)
 │   ├── .Xresources.host
 │   ├── .config/i3/host.conf
-│   └── bin/batmode
+│   ├── .config/rofi/host.rasi
+│   └── bin/…          ← host-only scripts (factual, sparky: desk.sh, desk-watch.sh)
 ├── system/            ← copies of /etc and /boot files — NOT stowed
 │   ├── common/        ← every host
-│   └── ultra/         ← this host only (boot entry, fstab, …)
+│   └── <name>/        ← that host only (boot entry, fstab, …)
 ├── pkgs/
 │   ├── common.txt  common-aur.txt     ← every host (curated)
-│   ├── ultra.txt   ultra-aur.txt      ← extras on ultra (generated)
+│   ├── <name>.txt  <name>-aur.txt     ← extras on that host (generated)
 │   └── update.sh
-└── hosts/ultra.md     ← hardware notes and install record
+└── hosts/<name>.md    ← hardware notes and install record
 ```
+Hosts today: `ultra`, `factual`, `sparky`.
 
 Branches: **`master`** is this setup; **`legacy`** holds the previous
 (2024) flat configs — Xmodmap, xbindkeys, bumblebee-status i3 config, etc.
@@ -171,8 +176,8 @@ Every shared config that can differ ends with one include line:
 | `git/.gitconfig` | `[include] path = ~/.gitconfig.local` | no |
 
 Rules:
-- The two required files exist in every host package even when empty, so
-  nothing depends on how i3/xrdb treat a missing include.
+- The three required files exist in every host package even when empty, so
+  nothing depends on how i3/xrdb/rofi treat a missing include.
 - **Host files only add.** A setting that differs between hosts lives only
   in the host files, never in the shared file too (duplicate i3 `bindsym`s
   warn; a stale shared value is confusing).
@@ -184,8 +189,9 @@ Rules:
 
 Adding a host `foo`:
 ```sh
-mkdir -p host-foo/.config/i3 system/foo
+mkdir -p host-foo/.config/i3 host-foo/.config/rofi system/foo
 cp host-ultra/.Xresources.host host-foo/       # then set its DPI
+cp host-ultra/.config/rofi/host.rasi host-foo/.config/rofi/   # same DPI
 touch host-foo/.config/i3/host.conf
 cp hosts/ultra.md hosts/foo.md                 # then rewrite
 ./install.sh -n && ./install.sh
@@ -677,9 +683,9 @@ sudo pacman -S tlp && sudo systemctl enable --now tlp
 sudo tlp-stat -b
 ```
 Which TLP plugin handles the battery is per host (ultra: `thinkpad` via
-`natacpi` — see `hosts/ultra.md`).
+`natacpi`; factual and sparky: `dell` — see `hosts/<host>.md`).
 
-**Charge thresholds** — `/etc/tlp.d/01-battery.conf` (in `system/<host>/`):
+**Charge thresholds** — `/etc/tlp.d/01-battery.conf` (shared, in `system/common/`):
 ```
 START_CHARGE_THRESH_BAT0=75
 STOP_CHARGE_THRESH_BAT0=80
@@ -687,7 +693,7 @@ STOP_CHARGE_THRESH_BAT0=80
 `sudo tlp start` to apply. `sudo tlp fullcharge` = one-off 100 %
 (reverts at reboot); `sudo tlp setcharge` = back to 75/80.
 
-**Bar toggle** (`~/bin/batmode` from the host package, left-click on the
+**Bar toggle** (`~/bin/batmode` from the shared `bin` package, left-click on the
 battery block) needs —
 `sudo visudo -f /etc/sudoers.d/tlp`:
 ```
@@ -910,10 +916,10 @@ host; `<host>/` holds files with machine-specific values.
 
 | File | Where | Purpose |
 |---|---|---|
-| `/boot/loader/loader.conf`, `/boot/loader/entries/arch.conf` | `ultra/` | systemd-boot; root and kernel params |
-| `/etc/fstab` | `ultra/` | partitions; hibernation swap |
+| `/boot/loader/loader.conf`, `/boot/loader/entries/arch.conf` | `<host>/` | systemd-boot; root and kernel params |
+| `/etc/fstab` | `<host>/` | partitions; hibernation swap |
 | `/etc/lightdm/lightdm-gtk-greeter.conf` | `<host>/` | greeter DPI |
-| `/etc/tlp.d/01-battery.conf` | `ultra/` | charge thresholds |
+| `/etc/tlp.d/01-battery.conf` | `common/` | charge thresholds (75/80) |
 | `/etc/mkinitcpio.conf` | `common/` | systemd hooks (default) |
 | `/etc/vconsole.conf` | `common/` | `KEYMAP=us` |
 | `/etc/X11/xorg.conf.d/00-keyboard.conf` | `common/` | `ctrl:nocaps,compose:ralt` (written by localectl) |
@@ -926,6 +932,9 @@ host; `<host>/` holds files with machine-specific values.
 | `/etc/geoclue/conf.d/99-beacondb.conf`, `/etc/geoclue/conf.d/90-gammastep.conf` | `common/` | location for gammastep (drop-ins; `geoclue.conf` stays stock) |
 | `/etc/nsswitch.conf` | `common/` | mDNS (`<hostname>.local`) |
 | `/etc/NetworkManager/dispatcher.d/90-tzupdate` | `common/` | time zone from IP on connect (restore as root:root, 755) |
+| `/etc/xdg/reflector/reflector.conf` | `common/` | US mirrors; run by hand before upgrades (timer not enabled) |
+| `/etc/pam.d/lightdm` | `sparky/` | stock file instead of `common/`'s (no fingerprint reader; keeps keyring auto-unlock) |
+| `/etc/modprobe.d/nvidia-off.conf`, `/etc/udev/rules.d/80-nvidia-off.rules`, `/etc/tlp.d/10-sparky-nvidia.conf` | `sparky/` | NVIDIA GPU off — see `hosts/sparky.md` |
 
 Services enabled: `NetworkManager`, `fstrim.timer`, `paccache.timer`, `tlp`,
 `bluetooth`, `keyd`, `lightdm`, `sshd`, `avahi-daemon`, `systemd-timesyncd`,
