@@ -655,7 +655,7 @@ powerline-fonts / font-awesome (Nerd Font has the glyphs), upower.
 | `time` | `%d/%b/%g %H:%M` |
 | `packages` | `["pacman","aur"]`, `aur_command = "yay -Qua"`, hidden when up to date, warns on kernel updates, `signal = 1` |
 | `privacy` | `v4l` (+ `pipewire`) — shows when camera/mic in use |
-| `custom` peripheral battery | `~/bin/peripheral-battery`: Keychron M3 via `~/bin/keychron-battery` (hidraw, feature report `0x51` cmd `0x06`) plus any non-power-supply device UPower lists (K3 over Bluetooth); hidden unless one is ≤ 50 % (Warning), ≤ 15 % Critical, ⚡ only for the M3. Needs `50-keychron.rules` (§13) |
+| `custom` peripheral battery | `~/bin/peripheral-battery`: Keychron M3 via `~/bin/keychron-battery` (hidraw, feature report `0x51` cmd `0x06`) plus any non-power-supply device UPower lists (K3 over Bluetooth, reports its battery 0–100 against a declared 0–255, so its UPower reading is scaled ×2.55); hidden unless one is ≤ 50 % (Warning), ≤ 15 % Critical, ⚡ only for the M3. Needs `50-keychron.rules` (§13) |
 | `custom` SSD watchdog | `journalctl -k -b -q \| grep -c 'ata4.*failed'`, `hide_when_empty` |
 
 Click rules: each `[[block.click]]` belongs to the `[[block]]` directly above
