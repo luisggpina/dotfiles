@@ -59,9 +59,9 @@ hide_when_empty = true
 
 [[block]]
 block = "custom"
-command = "~/bin/mouse-battery"
+command = "~/bin/peripheral-battery"
 json = true
-interval = 300
+interval = 60
 hide_when_empty = true
 
 [[block]]

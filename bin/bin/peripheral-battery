@@ -1,0 +1,45 @@
+#!/bin/sh
+# Bar block: batteries of mice, keyboards and other peripherals, shown only
+# when low. Prints i3status-rust custom-block JSON; empty text (block hidden)
+# when every one is above WARN, or none is connected / answering.
+#   Keychron M3 (USB or Keychron Link): ~/bin/keychron-battery (UPower can't see it)
+#   anything UPower lists that isn't a power supply (e.g. the K3 over Bluetooth)
+# Only keychron-battery reports charging; UPower's state for HID batteries
+# is a guess, so it is not shown.
+WARN=${WARN:-50}   # % at or below: shown, Warning
+CRIT=${CRIT:-15}   # % at or below: Critical
+
+items='' state=''
+add() {   # add ICON PERCENT [PREFIX]
+    [ "$2" -le "$WARN" ] || return 0
+    items="$items${items:+  }$1 $3$2%"
+    if [ "$2" -le "$CRIT" ]; then state=Critical
+    elif [ "$state" != Critical ]; then state=Warning; fi
+}
+
+if out=$("$HOME/bin/keychron-battery" 2>/dev/null); then
+    case $out in *charging*) chg='⚡' ;; *) chg='' ;; esac
+    add '󰍽' "${out%%%*}" "$chg"
+fi
+
+for dev in $(upower -e 2>/dev/null); do
+    info=$(upower -i "$dev") || continue
+    printf '%s\n' "$info" | grep -q '^ *power supply: *no$' || continue
+    printf '%s\n' "$info" | grep -q '^ *present: *no$' && continue
+    # "NN%" only; "(should be ignored)" percentages don't match
+    pct=$(printf '%s\n' "$info" | sed -n 's/^ *percentage: *\([0-9]*\)\(\.[0-9]*\)\{0,1\}%$/\1/p')
+    [ -n "$pct" ] || continue
+    kind=$(printf '%s\n' "$info" | sed -n 's/^  \([a-z-]*\)$/\1/p' | head -n 1)
+    case $kind in
+        keyboard) icon='󰌌' ;;
+        mouse)    icon='󰍽' ;;
+        *)        icon=$(printf '%s\n' "$info" | sed -n 's/^ *model: *//p' | tr -d '"\\') ;;
+    esac
+    add "${icon:-$kind}" "$pct"
+done
+
+if [ -z "$items" ]; then
+    echo '{"text":""}'
+else
+    printf '{"text":"%s","state":"%s"}\n' "$items" "$state"
+fi
