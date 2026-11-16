@@ -58,6 +58,13 @@ interval = 10
 hide_when_empty = true
 
 [[block]]
+block = "custom"
+command = "~/bin/mouse-battery"
+json = true
+interval = 300
+hide_when_empty = true
+
+[[block]]
 block = "battery"
 device = "BAT0"
 format = " $icon $percentage ↓ {$time |}"

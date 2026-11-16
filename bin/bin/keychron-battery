@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Read a Keychron M3's battery level through hidraw (no kernel driver).
+
+  keychron-battery.py --list   show Keychron hidraw nodes and the report IDs
+                               their HID descriptors declare (reads only)
+  keychron-battery.py [-v]     ask for the battery level
+
+Keychron Launcher's "1k" mouse protocol (interface on usage page 0x8c):
+send 20-byte feature report 0x51 with command 0x06 ("identity"), then read
+feature report 0x51 back until it echoes 0x06. In that answer (after the
+report ID) byte 10 is the battery percentage and bits 0-1 of byte 11 the
+power state: 1 charging, 2 full. Protocol as decoded by the OpenMouse project
+(src/drivers/keychron/mouse-1k-hid.ts).
+"""
+
+import fcntl
+import glob
+import os
+import sys
+import time
+
+KEYCHRON_VID = 0x3434
+REPORT_ID = 0x51
+REPORT_LEN = 20
+CMD_IDENTITY = 0x06
+ATTEMPTS = 5
+RETRY_S = 0.05
+FIRST_WAIT_S = 0.2   # Launcher waits this long behind a receiver
+
+
+def _ioc(nr, size):
+    return (3 << 30) | (size << 16) | (ord("H") << 8) | nr   # _IOC_READ|_IOC_WRITE
+
+
+def report_ids(descriptor):
+    """Report IDs declared in a HID report descriptor (short items only)."""
+    ids, i = set(), 0
+    while i < len(descriptor):
+        prefix = descriptor[i]
+        if prefix == 0xFE:                     # long item
+            i += 3 + (descriptor[i + 1] if i + 1 < len(descriptor) else 0)
+            continue
+        size = (0, 1, 2, 4)[prefix & 0x03]
+        if prefix & 0xFC == 0x84 and size >= 1 and i + 1 < len(descriptor):
+            ids.add(descriptor[i + 1])         # Report ID item
+        i += 1 + size
+    return ids
+
+
+def keychron_nodes():
+    """[(dev, pid, phys, report_ids)] for Keychron hidraw nodes."""
+    nodes = []
+    for node in sorted(glob.glob("/sys/class/hidraw/hidraw*"),
+                       key=lambda p: int(p.rsplit("hidraw", 1)[1])):
+        try:
+            with open(os.path.join(node, "device", "uevent")) as f:
+                uevent = dict(l.strip().split("=", 1) for l in f if "=" in l)
+            _bus, vid, pid = (int(x, 16) for x in uevent["HID_ID"].split(":"))
+        except (OSError, KeyError, ValueError):
+            continue
+        if vid != KEYCHRON_VID:
+            continue
+        try:
+            with open(os.path.join(node, "device", "report_descriptor"), "rb") as f:
+                ids = report_ids(f.read())
+        except OSError:
+            ids = set()
+        nodes.append(("/dev/" + os.path.basename(node), pid,
+                      uevent.get("HID_PHYS", ""), ids))
+    return nodes
+
+
+def query(dev, verbose=False):
+    """Return the identity answer (without report ID), or None."""
+    fd = os.open(dev, os.O_RDWR)
+    try:
+        req = bytearray(1 + REPORT_LEN)
+        req[0], req[1] = REPORT_ID, CMD_IDENTITY
+        fcntl.ioctl(fd, _ioc(0x06, len(req)), req)          # HIDIOCSFEATURE
+        time.sleep(FIRST_WAIT_S)
+        for attempt in range(ATTEMPTS):
+            if attempt:
+                time.sleep(RETRY_S)
+            buf = bytearray(1 + REPORT_LEN)
+            buf[0] = REPORT_ID
+            fcntl.ioctl(fd, _ioc(0x07, len(buf)), buf, True)  # HIDIOCGFEATURE
+            answer = buf[1:]
+            if verbose:
+                print(f"{dev}: {answer.hex(' ')}", file=sys.stderr)
+            if answer[0] == CMD_IDENTITY:
+                return answer
+        return None
+    finally:
+        os.close(fd)
+
+
+def main():
+    args = sys.argv[1:]
+    if any(a not in ("--list", "-v") for a in args):
+        sys.exit(__doc__)
+    nodes = keychron_nodes()
+    if not nodes:
+        sys.exit("No Keychron hidraw devices found")
+
+    if "--list" in args:
+        for dev, pid, phys, ids in nodes:
+            tags = " ".join(f"{i:02x}" for i in sorted(ids)) or "-"
+            mark = "  <- has 51" if REPORT_ID in ids else ""
+            print(f"{dev}  3434:{pid:04x}  {phys}  report IDs: {tags}{mark}")
+        return
+
+    candidates = [n for n in nodes if REPORT_ID in n[3]]
+    if not candidates:
+        sys.exit("No Keychron interface declares feature report 0x51 "
+                 "(run with --list)")
+    for dev, _pid, _phys, _ids in candidates:
+        try:
+            answer = query(dev, verbose="-v" in args)
+        except PermissionError:
+            sys.exit(f"Permission denied on {dev} (try: ls -l {dev})")
+        except OSError as e:
+            print(f"{dev}: {e}", file=sys.stderr)
+            continue
+        if answer is None:
+            print(f"{dev}: no answer to 0x06 (mouse asleep? move it and retry)",
+                  file=sys.stderr)
+            continue
+        level, state = answer[10], answer[11] & 0x03
+        if level > 100:
+            sys.exit(f"{dev}: implausible battery byte 0x{level:02x}")
+        suffix = {1: " (charging)", 2: " (full)"}.get(state, "")
+        print(f"{level}%{suffix}")
+        return
+    sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

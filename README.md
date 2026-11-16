@@ -655,6 +655,7 @@ powerline-fonts / font-awesome (Nerd Font has the glyphs), upower.
 | `time` | `%d/%b/%g %H:%M` |
 | `packages` | `["pacman","aur"]`, `aur_command = "yay -Qua"`, hidden when up to date, warns on kernel updates, `signal = 1` |
 | `privacy` | `v4l` (+ `pipewire`) — shows when camera/mic in use |
+| `custom` mouse battery | `~/bin/mouse-battery` → `~/bin/keychron-battery` (Keychron M3 over hidraw, feature report `0x51` cmd `0x06`); hidden unless ≤ 30 % (Warning), ≤ 15 % Critical, ⚡ when charging. Needs `50-keychron.rules` (§13) |
 | `custom` SSD watchdog | `journalctl -k -b -q \| grep -c 'ata4.*failed'`, `hide_when_empty` |
 
 Click rules: each `[[block.click]]` belongs to the `[[block]]` directly above
@@ -933,6 +934,7 @@ host; `<host>/` holds files with machine-specific values.
 | `/etc/nsswitch.conf` | `common/` | mDNS (`<hostname>.local`) |
 | `/etc/NetworkManager/dispatcher.d/90-tzupdate` | `common/` | time zone from IP on connect (restore as root:root, 755) |
 | `/etc/xdg/reflector/reflector.conf` | `common/` | US mirrors; run by hand before upgrades (timer not enabled) |
+| `/etc/udev/rules.d/50-keychron.rules` | `common/` | Keychron M3 hidraw access (`uaccess`) for Launcher and `keychron-battery`; one line per product ID (`d033` = M3 on cable) |
 | `/etc/pam.d/lightdm` | `sparky/` | stock file instead of `common/`'s (no fingerprint reader; keeps keyring auto-unlock) |
 | `/etc/modprobe.d/nvidia-off.conf`, `/etc/udev/rules.d/80-nvidia-off.rules`, `/etc/tlp.d/10-sparky-nvidia.conf` | `sparky/` | NVIDIA GPU off — see `hosts/sparky.md` |
 
