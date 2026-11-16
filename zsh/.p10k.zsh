@@ -38,6 +38,8 @@
     # =========================[ Line #2 ]=========================
     newline                 # \n
     # prompt_char           # prompt symbol
+    cmd_start               # when the command started; shown only in scrollback
+    prompt_char             # prompt symbol, shown only in scrollback
   )
 
   # The list of segments shown on the right. Fill it with less important segments.
@@ -1715,7 +1717,23 @@
   #   - always:   Trim down prompt when accepting a command line.
   #   - same-dir: Trim down prompt when accepting a command line unless this is the first command
   #               typed after changing current working directory.
-  typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=always
+  typeset -g POWERLEVEL9K_TRANSIENT_PROMPT=off
+
+
+  # Our own transient prompt: once Enter is hit, the command's prompt shrinks to
+  # "HH:MM:SS ❯ cmd", so scrollback shows when each command started.
+  function prompt_cmd_start() { p10k segment -t '%D{%H:%M:%S}' }
+  typeset -g POWERLEVEL9K_CMD_START_FOREGROUND=66
+  typeset -g POWERLEVEL9K_CMD_START_BACKGROUND=
+  typeset -g POWERLEVEL9K_CMD_START_LEFT_PROMPT_FIRST_SEGMENT_START_SYMBOL=
+  typeset -g POWERLEVEL9K_CMD_START_LEFT_LEFT_WHITESPACE=
+  typeset -g POWERLEVEL9K_CMD_START_LEFT_SUBSEGMENT_SEPARATOR=
+  function p10k-on-pre-prompt() {
+    p10k display 'empty_line|1|2/(left_frame|right_frame)'=show '2/left/(cmd_start|prompt_char)'=hide
+  }
+  function p10k-on-post-prompt() {
+    p10k display 'empty_line|1|2/(left_frame|right_frame)'=hide '2/left/(cmd_start|prompt_char)'=show
+  }
 
   # Instant prompt mode.
   #
