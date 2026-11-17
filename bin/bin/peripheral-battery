@@ -7,7 +7,8 @@
 # Sources:
 #   Keychron M3 (USB or Keychron Link): ~/bin/keychron-battery (UPower can't see it)
 #   anything UPower lists that isn't a power supply (e.g. the K3 over Bluetooth)
-#   HID batteries the kernel can't read: ~/bin/hid-battery (e.g. the K2 over Bluetooth)
+#   HID batteries UPower doesn't list (e.g. the K2 over Bluetooth): the kernel's
+#     capacity if it has one, else ~/bin/hid-battery asks the device
 # Only keychron-battery reports charging; UPower's state for HID batteries
 # is a guess, so it is not shown.
 WARN=${WARN:-50}   # % at or below: shown, Warning
@@ -33,11 +34,27 @@ report() {   # report ICON PERCENT NAME [STATUS]
     elif [ "$state" != Critical ]; then state=Warning; fi
 }
 
+fix_pct() {   # fix_pct MODEL PERCENT: undo known misreports
+    case $1 in
+        # declares its battery as 0-255 but sends 0-100: full reads as 39 %
+        'Keychron K3') set -- "$1" $(( ($2 * 255 + 50) / 100 )); [ "$2" -le 100 ] || set -- "$1" 100 ;;
+    esac
+    echo "$2"
+}
+icon_for() {   # icon_for KIND MODEL
+    case $1 in
+        keyboard) echo '󰌌' ;;
+        mouse)    echo '󰍽' ;;
+        *)        echo "${2:-$1}" ;;
+    esac
+}
+
 if out=$("$HOME/bin/keychron-battery" 2>/dev/null); then
     case $out in *'(charging)'*) st=charging ;; *'(full)'*) st=full ;; *) st='' ;; esac
     report '󰍽' "${out%%%*}" 'Keychron M3' "$st"
 fi
 
+seen=' '   # native paths UPower reported, so the sysfs loop skips them
 for dev in $(upower -e 2>/dev/null); do
     info=$(upower -i "$dev") || continue
     printf '%s\n' "$info" | grep -q '^ *power supply: *no$' || continue
@@ -47,32 +64,25 @@ for dev in $(upower -e 2>/dev/null); do
     [ -n "$pct" ] || continue
     kind=$(printf '%s\n' "$info" | sed -n 's/^  \([a-z-]*\)$/\1/p' | head -n 1)
     model=$(printf '%s\n' "$info" | sed -n 's/^ *model: *//p' | tr -d '"\\')
-    case $model in
-        # declares its battery as 0-255 but sends 0-100: full reads as 39 %
-        'Keychron K3') pct=$(( (pct * 255 + 50) / 100 )); [ "$pct" -le 100 ] || pct=100 ;;
-    esac
-    case $kind in
-        keyboard) icon='󰌌' ;;
-        mouse)    icon='󰍽' ;;
-        *)        icon=$model ;;
-    esac
-    report "${icon:-$kind}" "$pct" "${model:-$kind}"
+    seen="$seen$(printf '%s\n' "$info" | sed -n 's/^ *native-path: *//p') "
+    report "$(icon_for "$kind" "$model")" "$(fix_pct "$model" "$pct")" "${model:-$kind}"
 done
 
-# HID batteries the kernel can't read ("No data available"), so UPower doesn't
-# list them: ask the device through hidraw (e.g. the K2 over Bluetooth).
+# HID batteries UPower doesn't list. It can miss one for good: the K2 over
+# Bluetooth has no value when it connects (the kernel's Apple quirk asks it for
+# a feature report it doesn't have), and UPower doesn't look again once the K2
+# later sends one. Use the kernel's capacity if readable, else ask the device.
 for ps in "$PS"/hid-*-battery*; do
     [ -e "$ps" ] || continue
-    cat "$ps/capacity" >/dev/null 2>&1 && continue   # readable: UPower has it
-    out=$("$HOME/bin/hid-battery" "$ps" 2>/dev/null) || continue
-    pct=${out%% *} kind=${out#* }
+    case $seen in *" ${ps##*/} "*) continue ;; esac
     model=$(tr -d '"\\' < "$ps/model_name" 2>/dev/null)
-    case $kind in
-        keyboard) icon='󰌌' ;;
-        mouse)    icon='󰍽' ;;
-        *)        icon=$model ;;
-    esac
-    report "${icon:-$kind}" "$pct" "${model:-$kind}"
+    if pct=$(cat "$ps/capacity" 2>/dev/null) && [ -n "$pct" ]; then
+        kind=$("$HOME/bin/hid-battery" -k "$ps" 2>/dev/null) || kind=device
+    else
+        out=$("$HOME/bin/hid-battery" "$ps" 2>/dev/null) || continue
+        pct=${out%% *} kind=${out#* }
+    fi
+    report "$(icon_for "$kind" "$model")" "$(fix_pct "$model" "$pct")" "${model:-$kind}"
 done
 
 [ "$list" = 1 ] && exit 0

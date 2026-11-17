@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Read a HID device's battery level from its hidraw node.
 
-  hid-battery /sys/class/power_supply/hid-<...>-battery-N
-  hid-battery /dev/hidrawN
+  hid-battery [-k] /sys/class/power_supply/hid-<...>-battery-N
+  hid-battery [-k] /dev/hidrawN
 
 Prints "PERCENT KIND" (KIND: keyboard, mouse or device), e.g. "100 keyboard".
+With -k, prints only KIND, from the descriptor; the device isn't asked.
 
 For batteries the kernel can't read. The Keychron K2 over Bluetooth claims to
 be an Apple Aluminium Wireless keyboard (05ac:0255), and the kernel's battery
@@ -102,14 +103,21 @@ def hidraw_for(arg):
 
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1].startswith("-"):
+    args = sys.argv[1:]
+    kind_only = args[:1] == ["-k"]
+    if kind_only:
+        args = args[1:]
+    if len(args) != 1 or args[0].startswith("-"):
         sys.exit(__doc__)
-    dev, hid = hidraw_for(sys.argv[1].rstrip("/"))
+    dev, hid = hidraw_for(args[0].rstrip("/"))
     try:
         with open(os.path.join(hid, "report_descriptor"), "rb") as f:
             battery, bits, kind = parse(f.read())
     except OSError as e:
         sys.exit(f"{hid}: {e.strerror}")
+    if kind_only:
+        print(kind)
+        return
     if battery is None:
         sys.exit(f"{dev}: descriptor has no battery field")
     rid, offset, size, lmin, lmax = battery
