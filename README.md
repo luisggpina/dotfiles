@@ -64,7 +64,7 @@ otherwise anything an app later writes there would land in the repo.
 ├── dunst/.config/dunst/dunstrc        │
 ├── gammastep/.config/gammastep/config.ini
 ├── gtk/.config/gtk-{3,4}.0/settings.ini  ← GTK font (Chrome UI, §6)
-├── bin/bin/{lock,git-vimdiff,batmode,charger}
+├── bin/bin/{lock,git-vimdiff,batmode,charger,hid-battery}
 ├── host-<name>/       ← only what differs on that host (see §2)
 │   ├── .Xresources.host
 │   ├── .config/i3/host.conf
@@ -655,7 +655,7 @@ powerline-fonts / font-awesome (Nerd Font has the glyphs), upower.
 | `time` | `%d/%b/%g %H:%M` |
 | `packages` | `["pacman","aur"]`, `aur_command = "yay -Qua"`, hidden when up to date, warns on kernel updates, `signal = 1` |
 | `privacy` | `v4l` (+ `pipewire`) — shows when camera/mic in use |
-| `custom` peripheral battery | `~/bin/peripheral-battery`: Keychron M3 via `~/bin/keychron-battery` (hidraw, feature report `0x51` cmd `0x06`) plus any non-power-supply device UPower lists (K3 over Bluetooth, reports its battery 0–100 against a declared 0–255, so its UPower reading is scaled ×2.55); hidden unless one is ≤ 50 % (Warning), ≤ 15 % Critical, ⚡ only for the M3. Needs `50-keychron.rules` (§13) |
+| `custom` peripheral battery | `~/bin/peripheral-battery`: Keychron M3 via `~/bin/keychron-battery` (hidraw, feature report `0x51` cmd `0x06`) plus any non-power-supply device UPower lists (K3 over Bluetooth, reports its battery 0–100 against a declared 0–255, so its UPower reading is scaled ×2.55); HID batteries the kernel can’t read, via ~/bin/hid-battery (K2 over Bluetooth: the kernel’s quirk for Apple ID 05ac:0255 asks for a feature report; its battery is an input report) ;hidden unless one is ≤ 50 % (Warning), ≤ 15 % Critical, ⚡ only for the M3. Needs `50-keychron.rules` (§13) |
 | `custom` SSD watchdog | `journalctl -k -b -q \| grep -c 'ata4.*failed'`, `hide_when_empty` |
 
 Click rules: each `[[block.click]]` belongs to the `[[block]]` directly above
@@ -934,7 +934,7 @@ host; `<host>/` holds files with machine-specific values.
 | `/etc/nsswitch.conf` | `common/` | mDNS (`<hostname>.local`) |
 | `/etc/NetworkManager/dispatcher.d/90-tzupdate` | `common/` | time zone from IP on connect (restore as root:root, 755) |
 | `/etc/xdg/reflector/reflector.conf` | `common/` | US mirrors; run by hand before upgrades (timer not enabled) |
-| `/etc/udev/rules.d/50-keychron.rules` | `common/` | Keychron M3 hidraw access (`uaccess`) for Launcher and `keychron-battery`; one line per product ID (`d033` = M3 on cable) |
+| `/etc/udev/rules.d/50-keychron.rules` | `common/` | Keychron M3 hidraw access (`uaccess`) for Launcher and `keychron-battery`; one line per product ID (`d033` = M3 on cable, 0005:05AC:0255 = K2 over Bluetooth) |
 | `/etc/pam.d/lightdm` | `sparky/` | stock file instead of `common/`'s (no fingerprint reader; keeps keyring auto-unlock) |
 | `/etc/modprobe.d/nvidia-off.conf`, `/etc/udev/rules.d/80-nvidia-off.rules`, `/etc/tlp.d/10-sparky-nvidia.conf` | `sparky/` | NVIDIA GPU off — see `hosts/sparky.md` |
 

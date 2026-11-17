@@ -1,0 +1,8 @@
+# Keychron M3 mouse: let the logged-in user open its hidraw nodes, for
+# Keychron Launcher (Chrome WebHID) and ~/bin/keychron-battery.
+# d033 = M3 on its USB cable, d030 = Keychron Link receiver.
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", ATTRS{idProduct}=="d033", TAG+="uaccess"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", ATTRS{idProduct}=="d030", TAG+="uaccess"
+# Keychron K2 over Bluetooth presents as an Apple Aluminium Wireless keyboard
+# (05ac:0255); ~/bin/hid-battery reads its battery through this hidraw node.
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", KERNELS=="0005:05AC:0255.*", TAG+="uaccess"

@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""Read a HID device's battery level from its hidraw node.
+
+  hid-battery /sys/class/power_supply/hid-<...>-battery-N
+  hid-battery /dev/hidrawN
+
+Prints "PERCENT KIND" (KIND: keyboard, mouse or device), e.g. "100 keyboard".
+
+For batteries the kernel can't read. The Keychron K2 over Bluetooth claims to
+be an Apple Aluminium Wireless keyboard (05ac:0255), and the kernel's battery
+quirk for that ID asks for a *feature* report, which the K2 doesn't have
+(capacity: "No data available"). Its battery is an *input* report, which this
+asks for with HIDIOCGINPUT. The report ID, bit position and range come from the
+device's report descriptor (Generic Device Controls page 0x06, Battery
+Strength usage 0x20).
+"""
+
+import fcntl
+import glob
+import os
+import sys
+
+PAGE_GENERIC_DEVICE = 0x06
+USAGE_BATTERY_STRENGTH = 0x20
+
+
+def HIDIOCGINPUT(size):
+    return (3 << 30) | (size << 16) | (ord("H") << 8) | 0x0A   # _IOC_READ|_IOC_WRITE
+
+
+def parse(desc):
+    """Return (battery, report_bits, kind).
+
+    battery: (report_id, bit_offset, bit_size, logical_min, logical_max) or None
+    report_bits: {report_id: total input bits}
+    kind: 'keyboard', 'mouse' or 'device' (top-level Generic Desktop collections)
+    """
+    g = dict(page=0, lmin=0, lmax=0, lmax_u=0, size=0, count=0, rid=0)
+    stack, usages, ranges = [], [], []
+    bits, battery, kinds, depth = {}, None, set(), 0
+    i = 0
+    while i < len(desc):
+        prefix = desc[i]
+        if prefix == 0xFE:                                   # long item
+            i += 3 + (desc[i + 1] if i + 1 < len(desc) else 0)
+            continue
+        size = (0, 1, 2, 4)[prefix & 0x03]
+        raw = desc[i + 1:i + 1 + size]
+        u = int.from_bytes(raw, "little") if raw else 0
+        s = int.from_bytes(raw, "little", signed=True) if raw else 0
+        tag, typ = prefix >> 4, (prefix >> 2) & 0x03
+        i += 1 + size
+
+        if typ == 1:                                         # global
+            if tag == 0x0: g["page"] = u
+            elif tag == 0x1: g["lmin"] = s
+            elif tag == 0x2: g["lmax"], g["lmax_u"] = s, u
+            elif tag == 0x7: g["size"] = u
+            elif tag == 0x8: g["rid"] = u
+            elif tag == 0x9: g["count"] = u
+            elif tag == 0xA: stack.append(dict(g))
+            elif tag == 0xB and stack: g = stack.pop()
+        elif typ == 2:                                       # local
+            page = (u >> 16) if size == 4 else None
+            if tag == 0x0: usages.append((page or g["page"], u & 0xFFFF))
+            elif tag == 0x1: ranges.append([page or g["page"], u & 0xFFFF, None])
+            elif tag == 0x2 and ranges: ranges[-1][2] = u & 0xFFFF
+        elif typ == 0:                                       # main
+            if tag == 0xA:                                   # Collection
+                if depth == 0 and usages and usages[0][0] == 0x01:
+                    kinds.add({0x06: "keyboard", 0x02: "mouse"}.get(usages[0][1], "device"))
+                depth += 1
+            elif tag == 0xC:                                 # End Collection
+                depth = max(0, depth - 1)
+            elif tag == 0x8:                                 # Input
+                rid = g["rid"]
+                start = bits.get(rid, 0)
+                field = list(usages)
+                for page, lo, hi in ranges:
+                    field += [(page, x) for x in range(lo, (hi if hi is not None else lo) + 1)]
+                for n in range(g["count"]):
+                    usage = field[min(n, len(field) - 1)] if field else None
+                    if (battery is None and usage == (PAGE_GENERIC_DEVICE, USAGE_BATTERY_STRENGTH)
+                            and not u & 0x01):               # not a constant field
+                        lmin, lmax = g["lmin"], g["lmax"]
+                        if lmax < lmin:                      # e.g. 25 ff: 255, not -1
+                            lmax = g["lmax_u"]
+                        battery = (rid, start + n * g["size"], g["size"], lmin, lmax)
+                bits[rid] = start + g["size"] * g["count"]
+            usages, ranges = [], []
+    kind = "keyboard" if "keyboard" in kinds else "mouse" if "mouse" in kinds else "device"
+    return battery, bits, kind
+
+
+def hidraw_for(arg):
+    if arg.startswith("/dev/"):
+        return arg, "/sys/class/hidraw/" + os.path.basename(arg) + "/device"
+    nodes = glob.glob(os.path.join(arg, "device", "hidraw", "hidraw*"))
+    if not nodes:
+        sys.exit(f"{arg}: no hidraw node")
+    return "/dev/" + os.path.basename(nodes[0]), os.path.join(arg, "device")
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1].startswith("-"):
+        sys.exit(__doc__)
+    dev, hid = hidraw_for(sys.argv[1].rstrip("/"))
+    try:
+        with open(os.path.join(hid, "report_descriptor"), "rb") as f:
+            battery, bits, kind = parse(f.read())
+    except OSError as e:
+        sys.exit(f"{hid}: {e.strerror}")
+    if battery is None:
+        sys.exit(f"{dev}: descriptor has no battery field")
+    rid, offset, size, lmin, lmax = battery
+
+    buf = bytearray(1 + (bits[rid] + 7) // 8)
+    buf[0] = rid
+    try:
+        fd = os.open(dev, os.O_RDWR)
+    except OSError as e:
+        sys.exit(f"{dev}: {e.strerror}")
+    try:
+        fcntl.ioctl(fd, HIDIOCGINPUT(len(buf)), buf, True)
+    except OSError as e:
+        sys.exit(f"{dev}: report {rid}: {e.strerror}")
+    finally:
+        os.close(fd)
+
+    value = (int.from_bytes(buf[1:], "little") >> offset) & ((1 << size) - 1)
+    if lmax <= lmin:
+        sys.exit(f"{dev}: bad battery range {lmin}..{lmax}")
+    pct = round((value - lmin) * 100 / (lmax - lmin))
+    print(f"{max(0, min(100, pct))} {kind}")
+
+
+if __name__ == "__main__":
+    main()
