@@ -10,19 +10,35 @@ icons = "material-nf"
 block = "disk_space"
 path = "/"
 info_type = "used"
-format = " $icon / $used/$total ($percentage) "
+format = [
+  " $icon $path $percentage.bar(v) ",
+  " $icon $path $used/$total ($percentage) $available ",
+]
 interval = 60
 warning = 80.0
 alert = 90.0
+[[block.click]]
+button = "middle"
+action = "next_format"
+[[block.click]]
+button = "left"
 
 [[block]]
 block = "disk_space"
 path = "/home"
 info_type = "used"
-format = " $icon / $used/$total ($percentage) "
+format = [
+  " $icon $path $percentage.bar(v) ",
+  " $icon $path $used/$total ($percentage) $available ",
+]
 interval = 60
 warning = 80.0
 alert = 90.0
+[[block.click]]
+button = "middle"
+action = "next_format"
+[[block.click]]
+button = "left"
 
 [[block]]
 block = "net"
@@ -31,13 +47,29 @@ interval = 2
 
 [[block]]
 block = "memory"
-format = " $icon $mem_used.eng(prefix:Mi)/$mem_total.eng(prefix:Mi) "
+format = [
+  " $icon $mem_used_percents.bar(v) ",
+  " $icon $mem_used.eng(prefix:Mi)/$mem_total.eng(prefix:Mi) ",
+]
 interval = 5
+[[block.click]]
+button = "middle"
+action = "next_format"
+[[block.click]]
+button = "left"
 
 [[block]]
 block = "cpu"
-format = " $icon $utilization $frequency"
+format = [
+  " $icon $utilization.bar(v) $frequency.eng(w:3, prefix:G, force_prefix:true) ",
+  " $icon $utilization $frequency.eng(w:3, prefix:G, force_prefix:true) ",
+]
 interval = 2
+[[block.click]]
+button = "middle"
+action = "next_format"
+[[block.click]]
+button = "left"
 
 [[block]]
 block = "temperature"
@@ -56,6 +88,21 @@ command = "~/bin/charger"
 json = true
 interval = 10
 hide_when_empty = true
+[[block.click]]
+button = "left"
+cmd = "~/bin/charger toggle"
+sync = true
+update = true
+[[block.click]]
+button = "middle"
+cmd = "~/bin/charger toggle"
+sync = true
+update = true
+[[block.click]]
+button = "right"
+cmd = "~/bin/charger toggle"
+sync = true
+update = true
 
 [[block]]
 block = "custom"
@@ -79,7 +126,19 @@ cmd = "~/bin/batmode"
 update = true
 
 [[block]]
-block = "backlight"
+block = "custom"
+command = "~/bin/backlight-bar"
+persistent = true
+json = true
+hide_when_empty = true
+[[block.click]]
+button = "wheel_up"
+cmd = "brightnessctl -q set 5%+"
+[[block.click]]
+button = "wheel_down"
+cmd = "brightnessctl -q set 5%-"
+[[block.click]]
+button = "left"
 
 [[block]]
 block = "toggle"
@@ -93,17 +152,36 @@ command_off = "pkill -x gammastep"
 interval = 5
 
 [[block]]
-block = "sound"
+block = "custom"
+command = "~/bin/volume-bar"
+persistent = true
+json = true
+format = " $icon$text.pango-str() "
 [[block.click]]
 button = "left"
-action = "toggle_mute"
+cmd = "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+[[block.click]]
+button = "wheel_up"
+cmd = "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
+[[block.click]]
+button = "wheel_down"
+cmd = "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
 
 [[block]]
-block = "sound"
-device_kind = "source"
+block = "custom"
+command = "~/bin/volume-bar source"
+persistent = true
+json = true
+format = " $icon$text.pango-str() "
 [[block.click]]
 button = "left"
-action = "toggle_mute"
+cmd = "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+[[block.click]]
+button = "wheel_up"
+cmd = "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SOURCE@ 5%+"
+[[block.click]]
+button = "wheel_down"
+cmd = "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ 5%-"
 
 [[block]]
 block = "privacy"

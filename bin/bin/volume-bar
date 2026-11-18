@@ -1,0 +1,52 @@
+#!/bin/sh
+# Bar block: volume as a one-character bar that switches to the percentage
+# for HOLD seconds after each change.  Persistent i3status-rust custom block:
+# prints one JSON line per update.  Usage: volume-bar [sink|source]
+KIND=${1:-sink}
+HOLD=5
+case "$KIND" in
+    sink)   DEV=@DEFAULT_AUDIO_SINK@;   ICON=volume ;;
+    source) DEV=@DEFAULT_AUDIO_SOURCE@; ICON=microphone ;;
+    *) echo "usage: volume-bar [sink|source]" >&2; exit 1 ;;
+esac
+
+# $1: "pct" or "bar"; $2: wpctl's output, e.g. "Volume: 0.45 [MUTED]"
+# Muted shows only the muted icon.  Text carries its own leading space
+# (the block's format has none), so an empty text leaves no gap.
+show() {
+    pct=$(echo "$2" | awk '{ printf "%d", $2 * 100 + 0.5 }')
+    icon=$ICON
+    state=Idle
+    case "$2" in *MUTED*) muted=1 ;; *) muted= ;; esac
+    if [ -n "$muted" ]; then
+        icon=${ICON}_muted
+        state=Warning
+        text=""
+    elif [ "$1" = pct ]; then
+        text=" $pct%"
+    else
+        case $(( pct * 8 / 101 )) in
+            0) text=" ▁" ;; 1) text=" ▂" ;; 2) text=" ▃" ;; 3) text=" ▄" ;;
+            4) text=" ▅" ;; 5) text=" ▆" ;; 6) text=" ▇" ;; *) text=" █" ;;
+        esac
+    fi
+    printf '{"icon":"%s","state":"%s","text":"%s"}\n' "$icon" "$state" "$text"
+}
+
+last=$(wpctl get-volume "$DEV")
+show bar "$last"
+timer=
+pactl subscribe | while read -r event; do
+    # Only volume/mute changes on our kind of device, or a new default device
+    case "$event" in
+        *"'change' on $KIND #"*|*"'change' on server"*) ;;
+        *) continue ;;
+    esac
+    now=$(wpctl get-volume "$DEV")
+    [ "$now" = "$last" ] && continue    # e.g. the sink just started playing
+    last=$now
+    show pct "$now"
+    [ -n "$timer" ] && kill "$timer" 2>/dev/null
+    ( sleep "$HOLD"; show bar "$(wpctl get-volume "$DEV")" ) &
+    timer=$!
+done

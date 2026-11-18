@@ -1,0 +1,45 @@
+#!/bin/sh
+# Bar block: screen brightness as a moon-phase icon (material-nf's backlight
+# icons) that also shows the percentage for HOLD seconds after each change.
+# Persistent i3status-rust custom block: prints one JSON line per update;
+# empty text (block hidden) on machines without a backlight.
+HOLD=5      # s to show the percentage after a change
+BL=${BL:-/sys/class/backlight}
+# material-nf's backlight icons, darkest to brightest (Unicode code points)
+MOONS="e38d e3d4 e3d3 e3d2 e3d1 e3d0 e3cf e3ce e3cd e3cc e3cb e3ca e3c9 e3c8 e39b"
+
+# The device brightnessctl (and so the brightness keys) controls
+dev=$BL/$(brightnessctl -m -c backlight 2>/dev/null | cut -d, -f1)
+if ! [ -r "$dev/brightness" ]; then
+    echo '{"text":""}'
+    exec sleep infinity
+fi
+read -r max < "$dev/max_brightness"
+
+# $1: "pct" or "icon"; $2: raw brightness
+show() {
+    mode=$1
+    pct=$(( ($2 * 100 + max / 2) / max ))
+    i=$(( $2 * 15 / max )); [ "$i" -gt 14 ] && i=14
+    set -- $MOONS; shift "$i"
+    if [ "$mode" = pct ]; then
+        printf '{"text":"\\u%s %s%%"}\n' "$1" "$pct"
+    else
+        printf '{"text":"\\u%s"}\n' "$1"
+    fi
+}
+
+read -r last < "$dev/brightness"
+show icon "$last"
+timer=
+# The backlight driver sends a "change" uevent on every brightness write
+udevadm monitor --kernel --subsystem-match=backlight | while read -r event; do
+    case "$event" in *" change "*) ;; *) continue ;; esac
+    read -r now < "$dev/brightness"
+    [ "$now" = "$last" ] && continue
+    last=$now
+    show pct "$now"
+    [ -n "$timer" ] && kill "$timer" 2>/dev/null
+    ( sleep "$HOLD"; read -r b < "$dev/brightness"; show icon "$b" ) &
+    timer=$!
+done
