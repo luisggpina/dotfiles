@@ -1,0 +1,49 @@
+#!/bin/sh
+# Bar block: CPU use as two 4-step gauges -- the busiest single CPU (one busy
+# CPU can drive the fan while the average stays low), then the average over
+# all CPUs -- plus the average frequency.  `cpu-bar toggle` (bound to middle
+# click) flips between gauges and numbers.  Prints i3status-rust
+# custom-block JSON; each run diffs /proc/stat against the previous run's.
+DIR=${XDG_RUNTIME_DIR:-/tmp}
+FLAG=$DIR/cpu-bar-numbers   # exists: show numbers instead of gauges
+PREV=$DIR/cpu-bar-stat      # /proc/stat's cpu lines at the previous run
+
+if [ "$1" = toggle ]; then
+    if [ -e "$FLAG" ]; then rm -f "$FLAG"; else : > "$FLAG"; fi
+    exit
+fi
+
+mode=gauges
+[ -e "$FLAG" ] && mode=numbers
+# Average frequency in GHz, one decimal; empty if the CPU doesn't report it
+freq=$(cat /sys/devices/system/cpu/cpu[0-9]*/cpufreq/scaling_cur_freq 2>/dev/null |
+       awk '{ s += $1; n++ } END { if (n) printf "%.1f", s / n / 1e6 }')
+
+[ -e "$PREV" ] || : > "$PREV"   # first run: use the totals since boot
+grep '^cpu' /proc/stat > "$PREV.new"
+awk -v mode="$mode" -v freq="$freq" '
+    function gauge(u,  i) { i = int(u * 4 / 101) + 1; return G[i > 4 ? 4 : i] }
+    # Fields: user nice system idle iowait irq softirq steal (guest is in user)
+    { busy = $2 + $3 + $4 + $7 + $8 + $9; total = busy + $5 + $6 }
+    FILENAME == ARGV[1] { pbusy[$1] = busy; ptotal[$1] = total; next }
+    {
+        dt = total - ptotal[$1]
+        u = dt > 0 ? 100 * (busy - pbusy[$1]) / dt : 0
+        if ($1 == "cpu") avg = u
+        else if (u > max) max = u
+    }
+    END {
+        # Nerd Font md-gauge_empty, _low, (plain), _full as JSON escapes: their
+        # code points are above U+FFFF, so each is a UTF-16 surrogate pair
+        split("\\udb82\\udc73 \\udb82\\udc75 \\udb80\\ude9a \\udb82\\udc74", G, " ")
+        # Same thresholds as the built-in cpu block (on the average)
+        state = avg >= 90 ? "Critical" : avg >= 60 ? "Warning" : avg >= 30 ? "Info" : "Idle"
+        f = freq == "" ? "" : " " freq "GHz"
+        if (mode == "numbers")
+            text = sprintf("%3d%% %3d%%%s", max + 0.5, avg + 0.5, f)
+        else
+            text = gauge(max) " " gauge(avg) f
+        printf "{\"state\":\"%s\",\"text\":\"%s\"}\n", state, text
+    }
+' "$PREV" "$PREV.new"
+mv "$PREV.new" "$PREV"

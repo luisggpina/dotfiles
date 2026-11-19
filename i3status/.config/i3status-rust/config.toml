@@ -59,15 +59,15 @@ action = "next_format"
 button = "left"
 
 [[block]]
-block = "cpu"
-format = [
-  " $icon $utilization.bar(v) $frequency.eng(w:3, prefix:G, force_prefix:true) ",
-  " $icon $utilization $frequency.eng(w:3, prefix:G, force_prefix:true) ",
-]
+block = "custom"
+command = "~/bin/cpu-bar"
+json = true
 interval = 2
 [[block.click]]
 button = "middle"
-action = "next_format"
+cmd = "~/bin/cpu-bar toggle"
+sync = true
+update = true
 [[block.click]]
 button = "left"
 
