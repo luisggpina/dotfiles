@@ -731,9 +731,15 @@ HandleSuspendKey=suspend-then-hibernate
 ```
 Apply without logging out: `sudo systemctl kill -s HUP systemd-logind`
 (**not** restart — that kills the session).
-`HibernateDelaySec` left unset → battery-aware mode: wakes about hourly to
-estimate drain, hibernates only when low. Using it on AC too covers
-"suspended on AC, then unplugged". Measured suspend drain: ~0.5 %/h.
+`/etc/systemd/sleep.conf.d/hibernate-delay.conf` (ultra; `sleep.conf` stays
+stock):
+```
+[Sleep]
+HibernateDelaySec=12h
+```
+Hibernates on whichever comes first: 12 h of suspend or low battery (< 5 %).
+Using it on AC too covers "suspended on AC, then unplugged". Measured suspend
+drain: ~0.5 %/h, so 12 h of suspend costs ~6 %.
 
 ### Low battery while awake — `/etc/udev/rules.d/99-lowbat.rules`
 ```
@@ -928,6 +934,7 @@ host; `<host>/` holds files with machine-specific values.
 | `/etc/X11/xorg.conf.d/40-touchscreen-off.conf` | `common/` | ignore any touchscreen |
 | `/etc/keyd/default.conf` | `common/` | nav layer |
 | `/etc/systemd/logind.conf` | `common/` | suspend-then-hibernate |
+| `/etc/systemd/sleep.conf.d/hibernate-delay.conf` | `ultra/` | hibernate after 12 h of suspend |
 | `/etc/pam.d/sudo`, `/etc/pam.d/polkit-1`, `/etc/pam.d/lightdm` | `common/` | fingerprint (grosshack) |
 | `/etc/ssh/sshd_config.d/10-hardening.conf` | `common/` | key-only SSH |
 | `/etc/geoclue/conf.d/99-beacondb.conf`, `/etc/geoclue/conf.d/90-gammastep.conf` | `common/` | location for gammastep (drop-ins; `geoclue.conf` stays stock) |
